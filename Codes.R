@@ -31,20 +31,19 @@ hex_values <-c(microshades_palette("micro_orange",3, lightest = FALSE),
 
 
 
-samp_dat <- read.csv("C:/Users/Kemi Olofintila/Documents/Kemi/My Research/Oomycete Research/Metadata.csv", na.strings = "na")
+samp_dat <- read.csv("C:/Users/Kemi Olofintila/Documents/Kemi/My Research/Oomycete Research/Oomycete_Combined/Metadata_Combined.csv", na.strings = "na")
 rownames(samp_dat) <- samp_dat$Sample
 samp_dat <- samp_dat[,-1]
 SAMP <- phyloseq::sample_data(samp_dat)
 
 
 
-otu <- read.csv("~/Kemi/My Research/Oomycete Research/OTU Table.csv", na.strings = "na")
-
+otu <- read.csv("~/Kemi/My Research/Oomycete Research/Oomycete_Combined/OTU Table_Combined.csv", na.strings = "na")
 rownames(otu) <- otu$Species
 otu <- otu[,-1]
 OTU <- phyloseq::otu_table(otu, taxa_are_rows = TRUE)
 
-tax <- read.csv("C:/Users/Kemi Olofintila/Documents/Kemi/My Research/Oomycete Research/Taxonomy.csv")
+tax <- read.csv("C:/Users/Kemi Olofintila/Documents/Kemi/My Research/Oomycete Research/Oomycete_Combined/Taxonomy_Combined.csv")
 rownames(tax) <- tax$Species
 tax <- tax[,-1]
 TAX <- phyloseq::tax_table(as.matrix(tax))
@@ -59,8 +58,8 @@ oomycetes <- phyloseq::phyloseq(OTU,
                                 TAX, 
                                 #FASTA, 
                                 SAMP)
-#Subset Data
-Oomycete1 = subset_taxa(oomycetes, Phylum== "Oomycota")
+#Subset Data for 2021
+Oomycete1 = subset_samples(oomycetes, Year== "2021")
 #oomycetes@sam_data$ to pass through phyloseq object
 
 #alpha diversity example 
