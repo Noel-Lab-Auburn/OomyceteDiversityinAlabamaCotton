@@ -58,27 +58,30 @@ oomycetes <- phyloseq::phyloseq(OTU,
                                 TAX, 
                                 #FASTA, 
                                 SAMP)
-#Subset Data for 2021
-Oomycete1 = subset_samples(oomycetes, Year== "2021")
+#Subset Data for Each year
+Oomycete.1 = subset_samples(oomycetes, Year== "2021")
+Oomycete1 = prune_taxa(taxa_sums(Oomycete.1) > 0, Oomycete.1) #prune the rest of data to include only 2021
 #oomycetes@sam_data$ to pass through phyloseq object
 
+Oomycete.2 = subset_samples(oomycetes, Year== "2022")
+Oomycete2 = prune_taxa(taxa_sums(Oomycete.2) > 0, Oomycete.2)
 #alpha diversity example 
-plot_richness(Oomycete1) # canned version
+plot_richness(Oomycete2) # canned version
 ggsave("OOMYCETE_RICHNESS.png", dpi = 300)
 
-plot_richness(Oomycete1, measures= "Observed") +
+plot_richness(Oomycete2, measures= "Observed") +
   theme_classic()+
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ggsave("Alpha_Diversity.png", dpi = 300)
 
 # manual version, much more control
-oomycetes@sam_data$shannon <- estimate_richness(Oomycete1, measures=c("Shannon"))$Shannon #shannon diversity index
-oomycetes@sam_data$richness <- estimate_richness(Oomycete1, measures=c("Observed"))$Observed #observed number of taxa
-oomycetes@sam_data$even <- oomycetes@sam_data$shannon/log(oomycetes@sam_data$richness) #plieou's evenness
+Oomycete2@sam_data$shannon <- estimate_richness(Oomycete2, measures=c("Shannon"))$Shannon #shannon diversity index
+Oomycete2@sam_data$richness <- estimate_richness(Oomycete2, measures=c("Observed"))$Observed #observed number of taxa
+Oomycete2@sam_data$even <- Oomycete2@sam_data$shannon/log(Oomycete2@sam_data$richness) #plieou's evenness
 
 #includes above info in a new datafile
 
-oomycete.metadata <- oomycetes@sam_data
+oomycete.metadata <- Oomycete2@sam_data
 
 
 ggplot(oomycete.metadata, aes(x = reorder(Location, richness), y = richness)) + 
@@ -116,16 +119,16 @@ ggplot(oomycete.metadata, aes(x = reorder(Location, even), y = even)) +
 ggsave("Evenness_Per_Location.png", dpi = 300)
 
 # beta diversity example with canned phyloseq ordinations. I can teach you how to do it mannually too so you can have more control over the plotting. 
-GP.ord <- ordinate(Oomycete1, "MDS", "bray")
-p1 = plot_ordination(Oomycete1, GP.ord, type="samples", color = "Location")
+GP.ord <- ordinate(Oomycete2, "MDS", "bray")
+p1 = plot_ordination(Oomycete2, GP.ord, type="samples", color = "Location")
 print(p1)
 
 
 global.nmds.data <- p1$data
 #Permanova- Permutational Multivariate ANOVA
 
-oomycete.dist.bray = phyloseq::distance(Oomycete1, "bray") #creates distance matrix (0 (similar) 1 (non-similar))
-adonis2(oomycete.dist.bray~Longitude, as(sample_data(Oomycete1), "data.frame"), permutations = 9999) 
+oomycete.dist.bray = phyloseq::distance(Oomycete2, "bray") #creates distance matrix (0 (similar) 1 (non-similar))
+adonis2(oomycete.dist.bray~Longitude, as(sample_data(Oomycete2), "data.frame"), permutations = 9999) 
 
 ggplot() + 
   geom_point(data = global.nmds.data, aes(x = Axis.1, y = Axis.2, shape = Location, color = Sand), alpha = 0.8, size = 2) +
@@ -148,31 +151,35 @@ ggplot(Plot$data) +
   geom_bar(aes(x=reorder(Label, -Abundance, na.rm = F),y= Abundance, fill = Sand), stat= "identity") +
   theme_classic()+
   theme(strip.background = element_rect(color="white", fill="white", size=1.5, linetype="solid"),
-        strip.text.x = element_text(size = 12, color = "black"),
+        strip.text.x = element_text(size = 14, color = "black"),
         legend.position="top",
-        axis.text.x=element_text(angle =70, vjust = 1, hjust = 1),
-        axis.text.y=element_text(size = 10), 
+        axis.text.x=element_text(angle =90, vjust = 0.5, hjust = 1),
+        axis.text.y=element_text(size = 14), 
         legend.title = element_text(size = 14), 
         legend.text = element_text(size = 13), 
-        axis.title = element_text(size = 14),
-        axis.text = element_text(size = 12)) +
+        axis.title = element_text(size = 15),
+        axis.text = element_text(size = 14)) +
   xlab("") +
   ylab("Abundance")
 ggsave("Species_Abundance.png", dpi = 300)
 
 Plot$data
-#fircats for stacked bars
+#fircats for stacked bars without sand reference
 ggplot(Plot$data) +
-  geom_bar(aes(x=reorder(Label, -Abundance, na.rm = F),y= Abundance, fill = Soil.Type), stat= "identity") +
+  geom_bar(aes(x=reorder(Label, -Abundance, na.rm = F),y= Abundance), stat= "identity") +
   theme_classic()+
   theme(strip.background = element_rect(color="white", fill="white", size=1.5, linetype="solid"),
-        strip.text.x = element_text(size = 12, color = "black"),
+        strip.text.x = element_text(size = 14, color = "black"),
         legend.position="top",
-        axis.text.x=element_text(angle =70, vjust = 1, hjust = 1),
-        axis.text.y=element_text(size = 10)) +
+        axis.text.x=element_text(angle =90, vjust = 0.5, hjust = 1),
+        axis.text.y=element_text(size = 14), 
+        legend.title = element_text(size = 14), 
+        legend.text = element_text(size = 13), 
+        axis.title = element_text(size = 15),
+        axis.text = element_text(size = 14)) +
   xlab("") +
   ylab("Abundance")
-ggsave("Species_Abundance for soil type.png", dpi = 300)
+ggsave("Species_Abundance.png", dpi = 300)
 
 ##Oomycete Incidence Plots 
 grey_theme <- theme(axis.text.x = element_text(colour="black", size = 12, 
@@ -182,22 +189,7 @@ grey_theme <- theme(axis.text.x = element_text(colour="black", size = 12,
                     text=element_text(size = 16), panel.border = element_blank(), panel.grid.major = element_blank(),
                     panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
 
-#Oomycete <- read.csv("C:/Users/Kemi Olofintila/Documents/Kemi/My Research/Oomycete Research/Metadata.csv", na.strings = "na")
-#ggplot(Oomycete, aes(Sample, OomyceteIsolationIncidence, fill = Location))  + 
-# geom_bar(stat = "Identity")+
-#scale_fill_hue(c = 40) +
-#stat_compare_means(aes(group = Location, label = ..p.signif..), label.y = 1) +
-#xlab("Sample") +
-#ylab("Oomycete Isolation Incidence") + 
-#theme_classic()
-ggsave("Oomycete_Isolation_Incidence.png", dpi = 300)
 
-#ggplot(Oomycete, aes(as.factor(Location),OomyceteIsolationIncidence,fill= `Soil.Type` ))  + 
-# geom_bar(stat = "Identity")+
-#  scale_fill_hue(c = 40) +
-#  xlab("Sample") +
-#  ylab("Oomycete Isolation Incidence")+
-#  theme_classic() 
 
 oomycete <- data.frame(oomycetes@sam_data)
 
@@ -386,6 +378,24 @@ ggplot() +
         plot.background=element_blank())
 ggsave("Survey2021Map.png", dpi = 300)
 
+#Alternative Map with DataWim
+library(tidyverse)
+library(readxl)
+install.packages("ozmaps")
+library(ozmaps) 
+library(grid)
+devtools::install_github(rstudio/gt)
+remove.packages("cli")
+install.packages("cli")
+remotes::install_github("rstudio/gt")
+remotes::install_github("ddsjoberg/gtsummary")
+
+
+
+install.packages("gt", type = "binary")
+library(gt)
+data <- read.csv("C:/Users/Kemi Olofintila/Documents/Kemi/My Research/Oomycete Research/Oomycete_Combined/Metadata_Combined.csv", na.strings = "na")
+gt(head(data))
 
 #Plot for Seed Pathogenicity
 Pathogenicity <- read.csv("~/Kemi/My Research/Oomycete Research/Oomycete Seed Pathogenicity.csv", na.strings = "N/A")
