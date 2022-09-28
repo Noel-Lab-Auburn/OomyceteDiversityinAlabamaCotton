@@ -119,16 +119,16 @@ ggplot(oomycete.metadata, aes(x = reorder(Location, even), y = even)) +
 ggsave("Evenness_Per_Location.png", dpi = 300)
 
 # beta diversity example with canned phyloseq ordinations. I can teach you how to do it mannually too so you can have more control over the plotting. 
-GP.ord <- ordinate(Oomycete2, "MDS", "bray")
-p1 = plot_ordination(Oomycete2, GP.ord, type="samples", color = "Location")
+GP.ord <- ordinate(Oomycete1, "MDS", "bray")
+p1 = plot_ordination(Oomycete1, GP.ord, type="samples", color = "Location")
 print(p1)
 
 
 global.nmds.data <- p1$data
 #Permanova- Permutational Multivariate ANOVA
 
-oomycete.dist.bray = phyloseq::distance(Oomycete2, "bray") #creates distance matrix (0 (similar) 1 (non-similar))
-adonis2(oomycete.dist.bray~Longitude, as(sample_data(Oomycete2), "data.frame"), permutations = 9999) 
+oomycete.dist.bray = phyloseq::distance(Oomycete1, "bray") #creates distance matrix (0 (similar) 1 (non-similar))
+adonis2(oomycete.dist.bray~pH, as(sample_data(Oomycete1), "data.frame"), permutations = 9999) 
 
 ggplot() + 
   geom_point(data = global.nmds.data, aes(x = Axis.1, y = Axis.2, shape = Location, color = Sand), alpha = 0.8, size = 2) +
@@ -143,12 +143,12 @@ ggsave("Richness_Per_Location.png", dpi = 300)
 
 
 #Ploting bars
-Plot <- plot_bar(Oomycete1, "Label", fill = "CEC")
+Plot <- plot_bar(Oomycete1, "Clade", fill = "Sand")
 #To save plot for easier manipulation
 Plot$data
 #fircats for stacked bars
 ggplot(Plot$data) +
-  geom_bar(aes(x=reorder(Label, -Abundance, na.rm = F),y= Abundance, fill = Sand), stat= "identity") +
+  geom_bar(aes(x=reorder(Clade, -Abundance, na.rm = F),y= Abundance, fill = Sand), stat= "identity", width = 0.9) +
   theme_classic()+
   theme(strip.background = element_rect(color="white", fill="white", size=1.5, linetype="solid"),
         strip.text.x = element_text(size = 14, color = "black"),
@@ -159,14 +159,15 @@ ggplot(Plot$data) +
         legend.text = element_text(size = 13), 
         axis.title = element_text(size = 15),
         axis.text = element_text(size = 14)) +
+  coord_flip() +
   xlab("") +
   ylab("Abundance")
 ggsave("Species_Abundance.png", dpi = 300)
 
 Plot$data
 #fircats for stacked bars without sand reference
-ggplot(Plot$data) +
-  geom_bar(aes(x=reorder(Label, -Abundance, na.rm = F),y= Abundance), stat= "identity") +
+p2021 = ggplot(Plot$data) +
+  geom_bar(aes(x=reorder(Clade, -Abundance, FUN = sum),y= Abundance), stat= "identity", width = 0.9) +
   theme_classic()+
   theme(strip.background = element_rect(color="white", fill="white", size=1.5, linetype="solid"),
         strip.text.x = element_text(size = 14, color = "black"),
@@ -177,31 +178,36 @@ ggplot(Plot$data) +
         legend.text = element_text(size = 13), 
         axis.title = element_text(size = 15),
         axis.text = element_text(size = 14)) +
+  coord_flip() +
   xlab("") +
   ylab("Abundance")
 ggsave("Species_Abundance.png", dpi = 300)
 
-##Oomycete Incidence Plots 
-grey_theme <- theme(axis.text.x = element_text(colour="black", size = 12, 
-                                               angle = 90, hjust = 0.5, 
-                                               vjust = 0.5),
-                    axis.text.y = element_text(colour = "grey20", size = 12),
-                    text=element_text(size = 16), panel.border = element_blank(), panel.grid.major = element_blank(),
-                    panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+p2022
 
 
-
-oomycete <- data.frame(oomycetes@sam_data)
 
 #LinearModelPlot4CEC
-ggplot(oomycete) +
-  geom_point(aes(x = Sand/100, y = richness, color = Location))+
+oomycete1 <- data.frame(Oomycete1@sam_data) #2021
+oomycete2 <- data.frame(Oomycete2@sam_data) #2022
+oomycete.metadata <- Oomycete1@sam_data
+
+oomycete.metadata <- Oomycete2@sam_data
+
+
+ggplot(oomycete1) +
+  geom_point(aes(x = Sand/100, y = richness, color = Location), size = 3.5)+
   geom_smooth(aes(x = Sand/100, y = richness), method='lm', se = F, color= "black")+
   theme_classic()+
+  scale_color_manual(values = cbbPalette) +
   xlab("% Sand") +
   ylab("Oomycete Richness") + 
-  theme(axis.text.x=element_text(size = 11),
-        axis.text.y=element_text(size = 11))+
+  theme(axis.text.x=element_text(size = 14),
+        axis.text.y=element_text(size = 14), 
+        legend.title = element_text(size = 15), 
+        legend.text = element_text(size = 15), 
+        axis.title = element_text(size = 15),
+        axis.text = element_text(size = 15))+
   #scale_y_continuous(lim = c(0, 1), labels = scales::percent)+ 
   scale_x_continuous(lim = c(0, 1), labels = scales::percent)
 ggsave("Sand_OII.png", dpi = 300)
@@ -225,14 +231,14 @@ ggplot(oomycete) +
 ggsave("CEC.png", dpi = 300)
 
 #Shapiro's test (to test that input variable (edaphic factors) follows normal distribution)
-shapiro.test(oomycete$Clay) #value is greater than 0.05 so I assume normality
+shapiro.test(oomycete1$Sand) #value is greater than 0.05 so I assume normality
 
 shapiro.test(oomycete$CEC)
 
 
 #SpearmanCorrelation (CEC)
 
-cor.test(oomycete$Longitude, oomycete$richness, method=c("spearman"), exact = FALSE)
+cor.test(oomycete2$Sand, oomycete2$richness, method=c("spearman"), exact = FALSE)
 
 
 #PearsonCorrelation (Clay/Sand)
@@ -241,7 +247,7 @@ cor.test(oomycete$Longitude, oomycete$richness, method=c("spearman"), exact = FA
 #INDICATOR SPECIES AND TERNARY PLOT
 install.packages("indicspecies")
 library(indicspecies)
-indicator.tissue.fungi.corn <- indicspecies::multipatt(as.data.frame(t(Oomycete1@otu_table)), cluster = Oomycete1@sam_data$Location, func = "IndVal.g", control = how(nperm=9999))
+indicator.tissue.fungi.corn <- indicspecies::multipatt(as.data.frame(t(Oomycete2@otu_table)), cluster = Oomycete2@sam_data$Location, func = "IndVal.g", control = how(nperm=9999))
 # summary of results
 summary(indicator.tissue.fungi.corn, indvalcomp = TRUE)
 
@@ -327,29 +333,6 @@ install.packages("remotes")
 remotes::install_github("UrbanInstitute/urbnthemes", build_vignettes = TRUE)
 library(urbnthemes)
 
-counties_sf <- get_urbn_map(map = "counties", sf = TRUE)
-alabama <- countydata %>% 
-  left_join(counties, by = "county_fips") %>% 
-  filter(state_name =="Alabama") 
-
-ggplot() +
-  geom_polygon(data = alabama, mapping = aes(long, lat, group = group), fill = "white", color = "black", size = .25) +
-  geom_point(data = c, alpha = 1, aes(x=Longitude, y=Latitude, color = `County`), size= 5) +
-  theme_void() +
-  scale_fill_manual(name="Population (M)", breaks=c(1,50,100, 140), guide = guide_legend( keyheight = unit(5, units = "mm"), keywidth=unit(15, units = "mm"), label.position = "bottom", title.position = 'top', nrow=1)) +
-  labs( title = "Distribution of Fields Surveyed for Oomycetes in Alabama" ) 
-# +theme(axis.line=element_blank(),
-# axis.text.x=element_blank(),
-#axis.text.y=element_blank(),
-#  axis.ticks=element_blank(),
-# axis.title.x=element_blank(),
-#axis.title.y=element_blank(),
-#legend.position="none",
-#panel.background=element_blank(),
-#panel.border=element_blank(),
-#panel.grid.major=element_blank(),
-#panel.grid.minor=element_blank(),
-# plot.background=element_blank())
 
 library(tidyverse)
 devtools::install_github("UrbanInstitute/urbnmapr")
@@ -361,9 +344,12 @@ alabama <- countydata %>%
   filter(state_name =="Alabama") 
 ggplot() +
   geom_polygon(data = alabama, mapping = aes(long, lat, group = group), fill = "white", color = "black", size = .25) +
-  geom_point(data = samp_dat, alpha = 1, aes(x=Longitude, y=Latitude, colour= `County`), size= 5) +
+  geom_point(data = samp_dat, aes(x=Longitude, y=Latitude, shape = as.factor(Year), fill = County), color = "black", size= 7, alpha = 0.5) +
   theme_void() +
-  scale_fill_manual(name="Population (M)", breaks=c(1,50,100, 140), guide = guide_legend( keyheight = unit(5, units = "mm"), keywidth=unit(15, units = "mm"), label.position = "bottom", title.position = 'top', nrow=1)) +
+  scale_shape_manual(values = c(21,22))+
+  scale_fill_manual(name="County", values = cbbPalette)  +
+  guides(fill=guide_legend(override.aes=list(shape=21)))+
+  labs(shape="Year", colour="County")
   theme(axis.line=element_blank(),
         axis.text.x=element_blank(),
         axis.text.y=element_blank(),
@@ -378,48 +364,65 @@ ggplot() +
         plot.background=element_blank())
 ggsave("Survey2021Map.png", dpi = 300)
 
-#Alternative Map with DataWim
-library(tidyverse)
-library(readxl)
-install.packages("ozmaps")
-library(ozmaps) 
-library(grid)
-devtools::install_github(rstudio/gt)
-remove.packages("cli")
-install.packages("cli")
-remotes::install_github("rstudio/gt")
-remotes::install_github("ddsjoberg/gtsummary")
-
-
-
-install.packages("gt", type = "binary")
-library(gt)
-data <- read.csv("C:/Users/Kemi Olofintila/Documents/Kemi/My Research/Oomycete Research/Oomycete_Combined/Metadata_Combined.csv", na.strings = "na")
-gt(head(data))
-
 #Plot for Seed Pathogenicity
-Pathogenicity <- read.csv("~/Kemi/My Research/Oomycete Research/Oomycete Seed Pathogenicity.csv", na.strings = "N/A")
+Pathogenicity <- read.csv("~/Kemi/My Research/Oomycete Research/Oomycete_Combined/All Pathogenicity.csv", na.strings = "N/A")
 Pathogenicity2 <- na.omit(Pathogenicity)
 
-
-ggplot(Pathogenicity2, aes(x=reorder(Species, DSI), DSI, fill = Species))  + 
-  stat_summary(fun.data = mean_se, geom = "bar", position = position_dodge(width = 1)) +
-  stat_summary(fun.data = mean_se, geom = "errorbar", width = 0.3, position = position_dodge(width = 1)) +
-  stat_summary(fun=mean,geom="point", aes(group = Species), position = position_dodge(width = 0.7)) +
+Pathogenicity %>%
+  group_by(Isolate_Code, Species) %>%
+  summarise(mean=mean(DSI)) %>%
+  ggplot(aes(x=reorder(Species, mean), mean, fill = ""))  + 
+  stat_summary(fun.data = mean_se, geom = "bar", position = position_dodge(width = 0.9)) +
+  stat_summary(fun.data = mean_se, geom = "errorbar", width = 0.2, position = position_dodge(width = 1)) +
+  stat_summary(fun=mean,geom="point", aes(group = Species), position = position_dodge(width = 1)) +
   geom_point(alpha = 0.5, position = position_jitterdodge()) +
-  stat_compare_means(label = "p.signif", method = "wilcox", ref.group = "Negative Control") +
-  #stat_compare_means(mapping= aes(label=..p.adj..),comparisons= list(c("Control","JJ592"), c("Control","JJ751"),c("Control","JJ945"),c("Control","JJ155"),c("Control","JJ1208"), c("Control","JM882"), c("Control","JJ1133"),c("Control","MB1"), c("Control","95A_499"),c("Control","JM187"),c("Control","JJ281"), c("Control","JM17"),c("Control","JJ25"),c("Control","MB38"), c("Control","JJ158"),c("Control","JM204"),c("Control","JJ946"), c("Control","95A_498"),c("Control","JJ1043"),c("Control","JJ914"), c("Control","JJ213"),c("Control","JM199"),c("Control","JM236"), c("Control","JM907"),c("Control","JM553")))+
   xlab("") +
   ylab("Disease Severity Index") + 
   theme_classic()+
-  #scale_fill_manual(values = hex_values) +
   theme(strip.background = element_rect(color="white", fill="white", size=1.5, linetype="solid"),
         strip.text.x = element_text(size = 12, color = "black"),
         legend.position="top",
-        axis.text.x=element_text(angle =70, vjust = 1, hjust = 1),
-        axis.text.y=element_text(size = 10))
-ggsave("Oomycete Pathogenicity.png", dpi = 300)
+        axis.text.x=element_text(angle =90, vjust = 1, hjust = 1, size = 14),
+        axis.text.y=element_text(size = 15),
+        axis.title.y=element_text(size = 15))
+ggsave("Pathogenicity.png", dpi = 300)
 
+Pathogenicity_2021 = Pathogenicity %>%
+  subset(Year == 2021)
+
+
+#Subsetting to 2021 repeated only
+Pathogenicity %>%
+  group_by(Isolate_Code, Species) %>%
+  subset(Year == 2021) %>%
+  summarise(mean=mean(DSI)) %>%
+  ggplot(aes(x=reorder(Species, mean), mean, fill = ""))  + 
+  stat_summary(fun.data = mean_se, geom = "bar", position = position_dodge(width = 0.9)) +
+  stat_summary(fun.data = mean_se, geom = "errorbar", width = 0.2, position = position_dodge(width = 1)) +
+  stat_summary(fun=mean,geom="point", aes(group = Species), position = position_dodge(width = 1)) +
+  geom_point(alpha = 0.5, position = position_jitterdodge()) +
+  xlab("") +
+  ylab("Disease Severity Index") + 
+  theme_classic()+
+  theme(strip.background = element_rect(color="white", fill="white", size=1.5, linetype="solid"),
+        strip.text.x = element_text(size = 12, color = "black"),
+        legend.position="top",
+        axis.text.x=element_text(angle =90, vjust = 0.3, hjust = 1, size = 14),
+        axis.text.y=element_text(size = 15),
+        axis.title.y=element_text(size = 15))
+ggsave("Pathogenicity.png", dpi = 300)
+
+
+#To get the supplementary table
+Table = Pathogenicity %>%
+  subset(Year == 2021) %>%
+  group_by(Species) %>%
+  summarize(avg = mean(DSI), 
+            n = n(),
+            sd = sd(DSI), se = sd/sqrt(n))
+  Table <- kable(Table, digits = 3, format = "markdown")
+  
+  
 #to convertn species to factor;
 library (tibble)
 data <-as_tibble (Pathogenicity2)%>%
@@ -433,6 +436,7 @@ fit <- aov(DSI ~ Species, data)
 set.seed(20140123)
 Dunnet <- glht(fit, linfct=mcp(Species = "Tukey"))
 summary(Dunnet)
+
 
 TukeyHSD(Pathogenicity2)
 
@@ -449,16 +453,19 @@ library(knitr)
 kable(Results_fit1_20C, digits = 3, format = "markdown")
 
 #General model AOV for Individual Isolates 
-fit1_P <- lm(DSI ~ Isolate.Code, data)
-lsmeans_fit1_P <- lsmeans(fit1_P,"Isolate.Code")
+fit1_P <- lm(DSI ~ Isolate_Code, data)
+lsmeans_fit1_P <- lsmeans(fit1_P,"Isolate_Code")
 anova(fit1_P)
-CvsA_fit1_P <- contrast(lsmeans_fit1_P, "trt.vs.ctrl", ref=156, adjust = "bon") #FOR POSITIVE CONTROL
+CvsA_fit1_P <- contrast(lsmeans_fit1_P, "trt.vs.ctrl", ref=253, adjust = "bon") #FOR POSITIVE CONTROL
 Results_fit1_P <- summary(CvsA_fit1_P)
+#TO FIND OUT REF FOR POSITIVE CONTROL (exported to excel for exact position)
+P_REF = kable(lsmeans_fit1_P, digits = 3, format = "markdown")
 library(knitr)
 P_Contrast <- kable(Results_fit1_P, digits = 3, format = "markdown")
 
-fit1_N <- lm(DSI ~ Isolate.Code, data)
-lsmeans_fit1_N <- lsmeans(fit1_N,"Isolate.Code")
+#Contrast for negative control
+fit1_N <- lm(DSI ~ Isolate_Code, data)
+lsmeans_fit1_N <- lsmeans(fit1_N,"Isolate_Code")
 anova(fit1_N)
 CvsA_fit1_N <- contrast(lsmeans_fit1_N, "trt.vs.ctrl", ref=1, adjust = "bon") #FOR NEGATIVE CONTROL
 Results_fit1_N <- summary(CvsA_fit1_N)
@@ -487,7 +494,7 @@ par(mfrow=c(1,1)) # optional layout
 hist_20C_res <- hist(fit1_20C$residuals)
 
 #Test with random effect fit2 using aov
-fit1.2_20C <- aov(DSI ~ Species + Species:Isolate.Code + Error(Set), data)
+fit1.2_20C <- aov(DSI ~ Species + Species:Isolate_Code + Error(Set), data)
 summary(fit1.2_20C, adjust="bon")
 
 install.packages("lme4")
@@ -509,8 +516,13 @@ lsmeans_fit2_20C <- lsmeans(fit2_20C,"Species")
 #Print summary for data including mean, SE, df, CIs, t-ratio and p.value
 summary(lsmeans_fit2_20C, infer=c(TRUE,TRUE), adjust="bon")
 
-#plot(lsmeans_fit2_20C)
-
+plot(lsmeans_fit2_20C)+
+  theme(strip.background = element_rect(color="white", fill="white", size=1.5, linetype="solid"),
+        strip.text.x = element_text(size = 12, color = "black"),
+        axis.text.x=element_text(size = 14),
+        axis.text.y=element_text(size = 15),
+        axis.title.y=element_text(size = 15))+
+  theme_classic()
 #Estimate confidence intervals for model 2
 #confint(contrast(lsmeans_fit2, "trt.vs.ctrl", ref=3))
 
@@ -536,10 +548,10 @@ anova(fit2_20C, fit3_20C)
 #(always go for lowest AIC & BIC)
 ## ----contrast for model 3------------------------------------------------
 #Contrast for model 3
-CvsA_fit3_20C <- contrast(lsmeans_fit3_20C, "trt.vs.ctrl", ref=1)
-Results_fit3_20C <- summary(CvsA_fit3_20C)
-library(knitr)
-kable(Results_fit3_20C, digits = 3, format = "markdown")
+#CvsA_fit3_20C <- contrast(lsmeans_fit3_20C, "trt.vs.ctrl", ref=1)
+#Results_fit3_20C <- summary(CvsA_fit3_20C)
+#library(knitr)
+#kable(Results_fit3_20C, digits = 3, format = "markdown")
 
 CvsA_fit2_20C <- contrast(lsmeans_fit2_20C, "trt.vs.ctrl", ref=1)
 Results_fit2_20C <- summary(CvsA_fit2_20C, adjust="bon")
@@ -550,36 +562,17 @@ kable(Results_fit2_20C, digits = 3, format = "markdown")
 
 
 
-Pathogenicity2 %>%
-  group_by(Isolate.Code, Species) %>%
-  summarise(mean=mean(DSI)) %>%
-  ggplot(aes(x=reorder(Species, mean), mean, fill = Species))  + 
-  stat_summary(fun.data = mean_se, geom = "bar", position = position_dodge(width = 0.9)) +
-  stat_summary(fun.data = mean_se, geom = "errorbar", width = 0.2, position = position_dodge(width = 1)) +
-  stat_summary(fun=mean,geom="point", aes(group = Species), position = position_dodge(width = 1)) +
-  geom_point(alpha = 0.5, position = position_jitterdodge()) +
-  #stat_compare_means(label = "p.signif", method = "wilcox", ref.group = "Positiv e Control") +
-  #stat_compare_means(mapping= aes(label=..p.adj..),comparisons= list(c("Control","JJ592"), c("Control","JJ751"),c("Control","JJ945"),c("Control","JJ155"),c("Control","JJ1208"), c("Control","JM882"), c("Control","JJ1133"),c("Control","MB1"), c("Control","95A_499"),c("Control","JM187"),c("Control","JJ281"), c("Control","JM17"),c("Control","JJ25"),c("Control","MB38"), c("Control","JJ158"),c("Control","JM204"),c("Control","JJ946"), c("Control","95A_498"),c("Control","JJ1043"),c("Control","JJ914"), c("Control","JJ213"),c("Control","JM199"),c("Control","JM236"), c("Control","JM907"),c("Control","JM553")))+
-  xlab("") +
-  ylab("Disease Severity Index") + 
-  theme_classic()+
-  #scale_fill_manual(values = c(hex_values, cbbPalette)) +
-  theme(strip.background = element_rect(color="white", fill="white", size=1.5, linetype="solid"),
-        strip.text.x = element_text(size = 12, color = "black"),
-        legend.position="top",
-        axis.text.x=element_text(angle =70, vjust = 1, hjust = 1, size = 11),
-        axis.text.y=element_text(size = 12),
-        axis.title.y=element_text(size = 13))
-ggsave("Pathogenicity.png", dpi = 300)
 
 library(lme4)
 
 library(emmeans)
 
 library(multcomp)
-Pathogenicity2$Set <- as.factor(Pathogenicity2$Set)
 
-lm.DON <- lmer(DSI ~ Species + (1|Set), data = Pathogenicity2)
+
+Pathogenicity_2021$Set <- as.factor(Pathogenicity_2021$Set)
+
+lm.DON <- lmer(DSI ~ Species + (1|Isolate_Code), data = Pathogenicity_2021)
 car::Anova(lm.DON)
 
 plot(lm.DON)
@@ -587,6 +580,7 @@ plot(lm.DON)
 lsmeans.DON <- emmeans(lm.DON, ~Species) # estimate lsmeans of variety within siteXyear
 Results_lsmeansEC <- multcomp::cld(lsmeans.DON, alpha = 0.05, adjust = "bon", reversed = TRUE, details = TRUE) # contrast with Tukey ajustment
 Results_lsmeansEC
+kable(Results_lsmeansEC, digits = 3, format = "markdown")
 
 col_vector<-c('#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080', '#ffffff', '#000000')
 myCol = c("pink1", "violet", "mediumpurple1", "slateblue1", "purple", "purple3",
@@ -620,46 +614,3 @@ ggplot(Subset.Virulence.Grouping, aes(x = Rating, fill = Species )) +
 
 ggsave("Virulence.png", dpi = 300)
 
-#Plot for Seed Pathogenicity
-Pathogenicity <- read.csv("~/Kemi/My Research/Oomycete Research/Repeated Seed Pathogenicity.csv", na.strings = "N/A")
-Pathogenicity2 <- na.omit(Pathogenicity)
-
-Pathogenicity %>%
-  group_by(Isolate.Code, Species) %>%
-  summarise(mean=mean(DSI)) %>%
-  ggplot(aes(x=reorder(Species, mean), mean, fill = Species))  + 
-  stat_summary(fun.data = mean_se, geom = "bar", position = position_dodge(width = 0.9)) +
-  stat_summary(fun.data = mean_se, geom = "errorbar", width = 0.2, position = position_dodge(width = 1)) +
-  stat_summary(fun=mean,geom="point", aes(group = Species), position = position_dodge(width = 1)) +
-  geom_point(alpha = 0.5, position = position_jitterdodge()) +
-  #stat_compare_means(label = "p.signif", method = "wilcox", ref.group = "Negative Control") +
-  #stat_compare_means(mapping= aes(label=..p.adj..),comparisons= list(c("Control","JJ592"), c("Control","JJ751"),c("Control","JJ945"),c("Control","JJ155"),c("Control","JJ1208"), c("Control","JM882"), c("Control","JJ1133"),c("Control","MB1"), c("Control","95A_499"),c("Control","JM187"),c("Control","JJ281"), c("Control","JM17"),c("Control","JJ25"),c("Control","MB38"), c("Control","JJ158"),c("Control","JM204"),c("Control","JJ946"), c("Control","95A_498"),c("Control","JJ1043"),c("Control","JJ914"), c("Control","JJ213"),c("Control","JM199"),c("Control","JM236"), c("Control","JM907"),c("Control","JM553")))+
-  xlab("") +
-  ylab("Disease Severity Index") + 
-  theme_classic()+
-  #scale_fill_manual(values = c(hex_values, cbbPalette)) +
-  theme(strip.background = element_rect(color="white", fill="white", size=1.5, linetype="solid"),
-        strip.text.x = element_text(size = 12, color = "black"),
-        legend.position="top",
-        axis.text.x=element_text(angle =70, vjust = 1, hjust = 1, size = 11),
-        axis.text.y=element_text(size = 12),
-        axis.title.y=element_text(size = 13))
-ggsave("Pathogenicity.png", dpi = 300)
-
-ggplot(Pathogenicity, aes(x=reorder(Species, DSI), DSI, fill = Species))  + 
-  stat_summary(fun.data = mean_se, geom = "bar", position = position_dodge(width = 1)) +
-  stat_summary(fun.data = mean_se, geom = "errorbar", width = 0.3, position = position_dodge(width = 1)) +
-  stat_summary(fun=mean,geom="point", aes(group = Species), position = position_dodge(width = 0.7)) +
-  geom_point(alpha = 0.5, position = position_jitterdodge()) +
-  #stat_compare_means(label = "p.signif", method = "wilcox", ref.group = "Negative Control") +
-  #stat_compare_means(mapping= aes(label=..p.adj..),comparisons= list(c("Control","JJ592"), c("Control","JJ751"),c("Control","JJ945"),c("Control","JJ155"),c("Control","JJ1208"), c("Control","JM882"), c("Control","JJ1133"),c("Control","MB1"), c("Control","95A_499"),c("Control","JM187"),c("Control","JJ281"), c("Control","JM17"),c("Control","JJ25"),c("Control","MB38"), c("Control","JJ158"),c("Control","JM204"),c("Control","JJ946"), c("Control","95A_498"),c("Control","JJ1043"),c("Control","JJ914"), c("Control","JJ213"),c("Control","JM199"),c("Control","JM236"), c("Control","JM907"),c("Control","JM553")))+
-  xlab("") +
-  ylab("Disease Severity Index") + 
-  theme_classic()+
-  #scale_fill_manual(values = hex_values) +
-  theme(strip.background = element_rect(color="white", fill="white", size=1.5, linetype="solid"),
-        strip.text.x = element_text(size = 12, color = "black"),
-        legend.position="top",
-        axis.text.x=element_text(angle =70, vjust = 1, hjust = 1),
-        axis.text.y=element_text(size = 10))
-ggsave("Oomycete Pathogenicity.png", dpi = 300)
