@@ -33,30 +33,30 @@ hex_values <-c(microshades_palette("micro_orange",3, lightest = FALSE),
 
 samp_dat <- read.csv("C:/Users/Kemi Olofintila/Documents/Kemi/My Research/Oomycete Research/Oomycete_Combined/Metadata_Combined.csv", na.strings = "na")
 rownames(samp_dat) <- samp_dat$Sample
-samp_dat <- samp_dat[,-1]
+samp_dat <- samp_dat[,-1] #redundant
 SAMP <- phyloseq::sample_data(samp_dat)
 
 
 
 otu <- read.csv("~/Kemi/My Research/Oomycete Research/Oomycete_Combined/OTU Table_Combined.csv", na.strings = "na")
-rownames(otu) <- otu$Species
+rownames(otu) <- otu$Sample #Sample is the name of the first header (column)
 otu <- otu[,-1]
 OTU <- phyloseq::otu_table(otu, taxa_are_rows = TRUE)
 
+
 tax <- read.csv("C:/Users/Kemi Olofintila/Documents/Kemi/My Research/Oomycete Research/Oomycete_Combined/Taxonomy_Combined.csv")
 rownames(tax) <- tax$Species
-tax <- tax[,-1]
+tax <- tax[,-1] #redundant
 TAX <- phyloseq::tax_table(as.matrix(tax))
-
 
 
 #FASTA <- readDNAStringSet("path to fasta file", format="fasta", seek.first.rec=TRUE, use.names=TRUE)
 
 
+
 #Combines all data
 oomycetes <- phyloseq::phyloseq(OTU, 
                                 TAX, 
-                                #FASTA, 
                                 SAMP)
 #Subset Data for Each year
 Oomycete.1 = subset_samples(oomycetes, Year== "2021")
@@ -75,16 +75,23 @@ plot_richness(Oomycete2, measures= "Observed") +
 ggsave("Alpha_Diversity.png", dpi = 300)
 
 # manual version, much more control
+Oomycete1@sam_data$shannon <- estimate_richness(Oomycete1, measures=c("Shannon"))$Shannon #shannon diversity index
+Oomycete1@sam_data$richness <- estimate_richness(Oomycete1, measures=c("Observed"))$Observed #observed number of taxa
+Oomycete1@sam_data$even <- Oomycete1@sam_data$shannon/log(Oomycete1@sam_data$richness) #plieou's evenness
+
+#includes above info in a new datafile
+
+oomycete.metadata.1 <- Oomycete1@sam_data
+
 Oomycete2@sam_data$shannon <- estimate_richness(Oomycete2, measures=c("Shannon"))$Shannon #shannon diversity index
 Oomycete2@sam_data$richness <- estimate_richness(Oomycete2, measures=c("Observed"))$Observed #observed number of taxa
 Oomycete2@sam_data$even <- Oomycete2@sam_data$shannon/log(Oomycete2@sam_data$richness) #plieou's evenness
 
 #includes above info in a new datafile
 
-oomycete.metadata <- Oomycete2@sam_data
+oomycete.metadata.2 <- Oomycete2@sam_data
 
-
-ggplot(oomycete.metadata, aes(x = reorder(Location, richness), y = richness)) + 
+richness2021 <- ggplot(oomycete.metadata.1, aes(x = reorder(Location, richness), y = richness)) + 
   stat_summary(fun.y=mean,geom="bar") +
   stat_summary(fun.data = mean_se, geom = "errorbar", width = 0.5) +
   geom_jitter(size = 2) +
@@ -99,16 +106,15 @@ ggplot(oomycete.metadata, aes(x = reorder(Location, richness), y = richness)) +
   #scale_linetype_manual(values = c(rep("solid", 2), rep("dashed", 2))) +
   #stat_compare_means(method = "t.test") +
   theme_classic()
-ggsave("Richness_Per_Location.png", dpi = 300)
 
-ggplot(oomycete.metadata, aes(x = reorder(Location, even), y = even)) + 
+richness2022 <- ggplot(oomycete.metadata.2, aes(x = reorder(Location, richness), y = richness)) + 
   stat_summary(fun.y=mean,geom="bar") +
   stat_summary(fun.data = mean_se, geom = "errorbar", width = 0.5) +
   geom_jitter(size = 2) +
   #stat_compare_means(aes(group = Location, label = ..p.signif..), label.y = 10) + 
   #stat_compare_means(label = "p.signif", method = "t.test") +
   stat_compare_means(method = "anova")+
-  ylab("Evenness") + 
+  ylab("Richness") + 
   xlab("Location") +
   #ggtitle("Fungi") + 
   xlab("")+
@@ -116,7 +122,10 @@ ggplot(oomycete.metadata, aes(x = reorder(Location, even), y = even)) +
   #scale_linetype_manual(values = c(rep("solid", 2), rep("dashed", 2))) +
   #stat_compare_means(method = "t.test") +
   theme_classic()
-ggsave("Evenness_Per_Location.png", dpi = 300)
+
+ggpubr::ggarrange(richness2021, richness2022, nrow = 2, labels = c("a", "b"))
+
+
 
 # beta diversity example with canned phyloseq ordinations. I can teach you how to do it mannually too so you can have more control over the plotting. 
 GP.ord <- ordinate(Oomycete1, "MDS", "bray")
@@ -128,7 +137,30 @@ global.nmds.data <- p1$data
 #Permanova- Permutational Multivariate ANOVA
 
 oomycete.dist.bray = phyloseq::distance(Oomycete1, "bray") #creates distance matrix (0 (similar) 1 (non-similar))
-adonis2(oomycete.dist.bray~pH, as(sample_data(Oomycete1), "data.frame"), permutations = 9999) 
+adonis2(oomycete.dist.bray~County, as(sample_data(Oomycete1), "data.frame"), permutations = 9999) 
+#2021
+#CEC 0.0287 
+#Sand 0.018
+#Location 0.0115 
+#Latitude 0.0113
+#County 0.0431
+
+GP.ord <- ordinate(Oomycete2, "MDS", "bray")
+p1 = plot_ordination(Oomycete2, GP.ord, type="samples", color = "Location")
+print(p1)
+
+
+global.nmds.data <- p1$data
+#Permanova- Permutational Multivariate ANOVA
+
+oomycete.dist.bray = phyloseq::distance(Oomycete2, "bray") #creates distance matrix (0 (similar) 1 (non-similar))
+adonis2(oomycete.dist.bray~pH, as(sample_data(Oomycete2), "data.frame"), permutations = 9999) 
+#2022
+#Sand 0.0209
+#Clay 0.0409
+#SOM 0.0355
+#Longitude 0.0366
+#County 0.008 **
 
 ggplot() + 
   geom_point(data = global.nmds.data, aes(x = Axis.1, y = Axis.2, shape = Location, color = Sand), alpha = 0.8, size = 2) +
@@ -143,12 +175,12 @@ ggsave("Richness_Per_Location.png", dpi = 300)
 
 
 #Ploting bars
-Plot <- plot_bar(Oomycete1, "Clade", fill = "Sand")
+Plot <- plot_bar(Oomycete1, "Label", fill = "Sand")
 #To save plot for easier manipulation
 Plot$data
 #fircats for stacked bars
 ggplot(Plot$data) +
-  geom_bar(aes(x=reorder(Clade, -Abundance, na.rm = F),y= Abundance, fill = Sand), stat= "identity", width = 0.9) +
+  geom_bar(aes(x=reorder(Label, -Abundance, na.rm = F),y= Abundance, fill = Sand), stat= "identity", width = 0.9) +
   theme_classic()+
   theme(strip.background = element_rect(color="white", fill="white", size=1.5, linetype="solid"),
         strip.text.x = element_text(size = 14, color = "black"),
@@ -159,7 +191,6 @@ ggplot(Plot$data) +
         legend.text = element_text(size = 13), 
         axis.title = element_text(size = 15),
         axis.text = element_text(size = 14)) +
-  coord_flip() +
   xlab("") +
   ylab("Abundance")
 ggsave("Species_Abundance.png", dpi = 300)
@@ -167,7 +198,7 @@ ggsave("Species_Abundance.png", dpi = 300)
 Plot$data
 #fircats for stacked bars without sand reference
 p2021 = ggplot(Plot$data) +
-  geom_bar(aes(x=reorder(Clade, -Abundance, FUN = sum),y= Abundance), stat= "identity", width = 0.9) +
+  geom_bar(aes(x=reorder(Label, -Abundance, FUN = sum),y= Abundance), stat= "identity", width = 0.9) +
   theme_classic()+
   theme(strip.background = element_rect(color="white", fill="white", size=1.5, linetype="solid"),
         strip.text.x = element_text(size = 14, color = "black"),
@@ -178,24 +209,56 @@ p2021 = ggplot(Plot$data) +
         legend.text = element_text(size = 13), 
         axis.title = element_text(size = 15),
         axis.text = element_text(size = 14)) +
-  coord_flip() +
   xlab("") +
   ylab("Abundance")
 ggsave("Species_Abundance.png", dpi = 300)
 
-p2022
+Plot <- plot_bar(Oomycete2, "Label", fill = "Sand")
+#To save plot for easier manipulation
+Plot$data
+#fircats for stacked bars
+ggplot(Plot$data) +
+  geom_bar(aes(x=reorder(Label, -Abundance, na.rm = F),y= Abundance, fill = Sand), stat= "identity", width = 0.9) +
+  theme_classic()+
+  theme(strip.background = element_rect(color="white", fill="white", size=1.5, linetype="solid"),
+        strip.text.x = element_text(size = 14, color = "black"),
+        legend.position="top",
+        axis.text.x=element_text(angle =90, vjust = 0.5, hjust = 1),
+        axis.text.y=element_text(size = 14), 
+        legend.title = element_text(size = 14), 
+        legend.text = element_text(size = 13), 
+        axis.title = element_text(size = 15),
+        axis.text = element_text(size = 14)) +
+  xlab("") +
+  ylab("Abundance")
+ggsave("Species_Abundance.png", dpi = 300)
+
+Plot$data
+#fircats for stacked bars without sand reference
+p2022 = ggplot(Plot$data) +
+  geom_bar(aes(x=reorder(Label, -Abundance, FUN = sum),y= Abundance), stat= "identity", width = 0.9) +
+  theme_classic()+
+  theme(strip.background = element_rect(color="white", fill="white", size=1.5, linetype="solid"),
+        strip.text.x = element_text(size = 14, color = "black"),
+        legend.position="top",
+        axis.text.x=element_text(angle =90, vjust = 0.5, hjust = 1),
+        axis.text.y=element_text(size = 14), 
+        legend.title = element_text(size = 14), 
+        legend.text = element_text(size = 13), 
+        axis.title = element_text(size = 15),
+        axis.text = element_text(size = 14)) +
+  xlab("") +
+  ylab("Abundance")
+ggsave("Species_Abundance.png", dpi = 300)
+
+
+ggpubr::ggarrange(p2021, p2022, nrow = 2, labels = c("a", "b"))
 
 
 
 #LinearModelPlot4CEC
-oomycete1 <- data.frame(Oomycete1@sam_data) #2021
-oomycete2 <- data.frame(Oomycete2@sam_data) #2022
-oomycete.metadata <- Oomycete1@sam_data
 
-oomycete.metadata <- Oomycete2@sam_data
-
-
-ggplot(oomycete1) +
+Sand2021 <- ggplot(oomycete.metadata.1) +
   geom_point(aes(x = Sand/100, y = richness, color = Location), size = 3.5)+
   geom_smooth(aes(x = Sand/100, y = richness), method='lm', se = F, color= "black")+
   theme_classic()+
@@ -210,10 +273,29 @@ ggplot(oomycete1) +
         axis.text = element_text(size = 15))+
   #scale_y_continuous(lim = c(0, 1), labels = scales::percent)+ 
   scale_x_continuous(lim = c(0, 1), labels = scales::percent)
-ggsave("Sand_OII.png", dpi = 300)
+
+Sand2022 <- ggplot(oomycete.metadata.2) +
+  geom_point(aes(x = Sand/100, y = richness, color = Location), size = 3.5)+
+  geom_smooth(aes(x = Sand/100, y = richness), method='lm', se = F, color= "black")+
+  theme_classic()+
+  scale_color_manual(values = cbbPalette) +
+  xlab("% Sand") +
+  ylab("Oomycete Richness") + 
+  theme(axis.text.x=element_text(size = 14),
+        axis.text.y=element_text(size = 14), 
+        legend.title = element_text(size = 15), 
+        legend.text = element_text(size = 15), 
+        axis.title = element_text(size = 15),
+        axis.text = element_text(size = 15))+
+  #scale_y_continuous(lim = c(0, 1), labels = scales::percent)+ 
+  scale_x_continuous(lim = c(0, 1), labels = scales::percent)
+require(grid)
+figure <- ggpubr::ggarrange(Sand2021, Sand2022, nrow = 1, ncol = 2, labels = c("a", "b"), common.legend = T)
+#annotate_figure(figure, left = textGrob("Common y-axis", rot =90, vjust = 1, gp = gpar(cex = 1.3)), bottom = textGrob("Common x-axis", gp = gpar(cex = 1,3)))
+
 
 #LinearModelPlot4CEC
-ggplot(oomycete) +
+CEC2021 <- ggplot(oomycete.metadata.1) +
   geom_point(aes(x = CEC, y = richness, color = Location), size = 3.5)+
   geom_smooth(aes(x = CEC, y = richness), method='lm', se = F, color= "black")+
   theme_classic()+
@@ -227,8 +309,22 @@ ggplot(oomycete) +
         axis.title = element_text(size = 15),
         axis.text = element_text(size = 15))
 
+CEC2022 <- ggplot(oomycete.metadata.2) +
+  geom_point(aes(x = CEC, y = richness, color = Location), size = 3.5)+
+  geom_smooth(aes(x = CEC, y = richness), method='lm', se = F, color= "black")+
+  theme_classic()+
+  scale_color_manual(values = c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")) + #(for points and lines, scale_fill for plots)
+  xlab("CEC") +
+  ylab("Oomycete Richness") + 
+  theme(axis.text.x=element_text(size = 14),
+        axis.text.y=element_text(size = 14), 
+        legend.title = element_text(size = 15), 
+        legend.text = element_text(size = 15), 
+        axis.title = element_text(size = 15),
+        axis.text = element_text(size = 15))
 
-ggsave("CEC.png", dpi = 300)
+ggpubr::ggarrange(CEC2021, CEC2022, nrow = 1, ncol = 2, labels = c("a", "b"), common.legend = T)
+
 
 #Shapiro's test (to test that input variable (edaphic factors) follows normal distribution)
 shapiro.test(oomycete1$Sand) #value is greater than 0.05 so I assume normality
@@ -238,18 +334,59 @@ shapiro.test(oomycete$CEC)
 
 #SpearmanCorrelation (CEC)
 
-cor.test(oomycete2$Sand, oomycete2$richness, method=c("spearman"), exact = FALSE)
+cor.test(oomycete.metadata.1$CEC, oomycete.metadata.1$richness, method=c("spearman"), exact = FALSE)
+#S = 143.79, p-value = 0.02848
+#alternative hypothesis: true rho is not equal to 0
+#sample estimates:
+#  rho 0.6049816 
+
+cor.test(oomycete.metadata.1$Sand, oomycete.metadata.1$richness, method=c("spearman"), exact = FALSE)
+#data:  oomycete.metadata.1$Sand and oomycete.metadata.1$richness
+#S = 592.57, p-value = 0.02156
+#alternative hypothesis: true rho is not equal to 0
+#sample estimates:
+#  rho -0.6279445
+
+cor.test(oomycete.metadata.2$Sand, oomycete.metadata.2$richness, method=c("spearman"), exact = FALSE)
+#data:  oomycete.metadata.2$Sand and oomycete.metadata.2$richness
+#S = 444.67, p-value = 0.06118
+#alternative hypothesis: true rho is not equal to 0
+#sample estimates:
+#  rho -0.5547842 
+
+cor.test(oomycete.metadata.2$CEC, oomycete.metadata.2$richness, method=c("spearman"), exact = FALSE)
+#data:  oomycete.metadata.2$CEC and oomycete.metadata.2$richness
+#S = 105.41, p-value = 0.02766
+#alternative hypothesis: true rho is not equal to 0
+#sample estimates:
+#  rho 0.6314178 
 
 
 #PearsonCorrelation (Clay/Sand)
 #cor.test(Oomycete$Clay, Oomycete$OomyceteIsolationIncidence, method=c("pearson"), exact = FALSE)
 
 #INDICATOR SPECIES AND TERNARY PLOT
-install.packages("indicspecies")
+library(indicspecies)
+indicator.tissue.fungi.corn <- indicspecies::multipatt(as.data.frame(t(Oomycete1@otu_table)), cluster = Oomycete1@sam_data$Location, func = "IndVal.g", control = how(nperm=9999))
+# summary of results
+summary(indicator.tissue.fungi.corn, indvalcomp = TRUE)
+
+#Group North  #sps.  2 
+#A    B  stat p.value  
+#Sp3_2021 1.00 0.75 0.866  0.0272 *
+#  Sp8_2021 1.00 0.75 0.866  0.0273 *
+#  ---
+#  Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1 
+
 library(indicspecies)
 indicator.tissue.fungi.corn <- indicspecies::multipatt(as.data.frame(t(Oomycete2@otu_table)), cluster = Oomycete2@sam_data$Location, func = "IndVal.g", control = how(nperm=9999))
 # summary of results
 summary(indicator.tissue.fungi.corn, indvalcomp = TRUE)
+
+#Group North  #sps.  2 
+#A    B  stat p.value   
+#Sp7_2022 1.00 1.00 1.000  0.0032 **
+#  Sp5_2022 1.00 0.75 0.866  0.0223 * 
 
 #Loading Ternary Plot
 install.packages('Ternary')
@@ -310,19 +447,6 @@ ggtern()+
 ggsave("TernaryPlot.png", dpi = 300)
 
 
-
-
-
-
-#ggplot(Oomycete, aes(Sand, OomyceteIsolationIncidence, color = `Location`))  +
-geom_point(stat = "Identity")+
-  geom_smooth(aes(x = CEC, y = OomyceteIsolationIncidence), method='lm', se = F, color = "black") +
-  geom_bar(stat = "Identity")+
-  scale_fill_hue(c = 50) +
-  xlab("Sample") +
-  ylab("Oomycete Isolation Incidence")
-
-cor.test(CEC, OomyceteIsolationIncidence, method=c("spearman"))
 
 #Oomycete Map
 library(ggplot2)
@@ -413,11 +537,33 @@ Pathogenicity %>%
 ggsave("Pathogenicity.png", dpi = 300)
 
 
+#Subsetting to Mean_2021 repeated only
+Pathogenicity <- read.csv("~/Kemi/My Research/Oomycete Research/Oomycete_Combined/Mean_DSI_REPEAT_2021_ONLY.csv", na.strings = "N/A")
+
+Pathogenicity %>%
+  group_by(Isolate_Code, Species) %>%
+  summarise(mean=mean(Mean_DSI)) %>%
+  ggplot(aes(x=reorder(Species, mean), mean, fill = ""))  + 
+  stat_summary(fun.data = mean_se, geom = "bar", position = position_dodge(width = 0.9)) +
+  stat_summary(fun.data = mean_se, geom = "errorbar", width = 0.2, position = position_dodge(width = 1)) +
+  stat_summary(fun=mean,geom="point", aes(group = Species), position = position_dodge(width = 1)) +
+  geom_point(alpha = 0.5, position = position_jitterdodge()) +
+  xlab("") +
+  ylab("Disease Severity Index") + 
+  theme_classic()+
+  theme(strip.background = element_rect(color="white", fill="white", size=1.5, linetype="solid"),
+        strip.text.x = element_text(size = 12, color = "black"),
+        legend.position="top",
+        axis.text.x=element_text(angle =90, vjust = 0.3, hjust = 1, size = 14),
+        axis.text.y=element_text(size = 15),
+        axis.title.y=element_text(size = 15))
+ggsave("Pathogenicity.png", dpi = 300)
+
+
 #To get the supplementary table
 Table = Pathogenicity %>%
-  subset(Year == 2021) %>%
   group_by(Species) %>%
-  summarize(avg = mean(DSI), 
+  summarize(avg = mean(Mean_DSI), 
             n = n(),
             sd = sd(DSI), se = sd/sqrt(n))
   Table <- kable(Table, digits = 3, format = "markdown")
