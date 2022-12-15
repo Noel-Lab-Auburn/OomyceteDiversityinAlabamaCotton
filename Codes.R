@@ -38,12 +38,12 @@ SAMP <- phyloseq::sample_data(samp_dat)
 
 
 
-otu <- read.csv("~/Kemi/My Research/Oomycete Research/Oomycete_Combined/OTU Table_Combined.csv", na.strings = "na")
+otu <- read.csv("~/Kemi/My Research/Oomycete Research/Oomycete_Combined/OTU_Table_Combined.csv", na.strings = "na")
 rownames(otu) <- otu$Species
 otu <- otu[,-1]
 OTU <- phyloseq::otu_table(otu, taxa_are_rows = TRUE)
 
-tax <- read.csv("C:/Users/Kemi Olofintila/Documents/Kemi/My Research/Oomycete Research/Oomycete_Combined/Taxonomy_Combined.csv")
+tax <- read.csv("C:/Users/Kemi Olofintila/Documents/Kemi/My Research/Oomycete Research/Oomycete_Combined/Tax_Table_Combined.csv")
 rownames(tax) <- tax$Species
 tax <- tax[,-1]
 TAX <- phyloseq::tax_table(as.matrix(tax))
@@ -151,7 +151,19 @@ global.nmds.data <- p1$data
 #Permanova- Permutational Multivariate ANOVA
 
 oomycete.dist.bray = phyloseq::distance(Oomycete1, "bray") #creates distance matrix (0 (similar) 1 (non-similar))
-adonis2(oomycete.dist.bray~pH, as(sample_data(Oomycete1), "data.frame"), permutations = 9999) 
+adonis2(oomycete.dist.bray~Latitude, as(sample_data(Oomycete1), "data.frame"), permutations = 9999) 
+
+#2022
+GP.ord <- ordinate(Oomycete2, "MDS", "bray")
+p1 = plot_ordination(Oomycete2, GP.ord, type="samples", color = "Location")
+print(p2)
+
+
+global.nmds.data.2 <- p2$data
+#Permanova- Permutational Multivariate ANOVA
+
+oomycete.dist.bray.2 = phyloseq::distance(Oomycete2, "bray") #creates distance matrix (0 (similar) 1 (non-similar))
+adonis2(oomycete.dist.bray.2~SOM, as(sample_data(Oomycete2), "data.frame"), permutations = 9999)
 
 ggplot() + 
   geom_point(data = global.nmds.data, aes(x = Axis.1, y = Axis.2, shape = Location, color = Sand), alpha = 0.8, size = 2) +
@@ -166,12 +178,11 @@ ggsave("Richness_Per_Location.png", dpi = 300)
 
 
 #Ploting bars
-Plot <- plot_bar(Oomycete2, "Label", fill = "Sand")
+Plot <- plot_bar(Oomycete1, "Label", fill = "Sand")
 #To save plot for easier manipulation
 Plot$data
-#fircats for stacked bars
-ggplot(Plot$data) +
-  geom_bar(aes(x=reorder(Label, -Abundance, na.rm = F),y= Abundance, fill = Sand), stat= "identity", width = 0.9) +
+p2021 = ggplot(Plot$data) +
+  geom_bar(aes(x=reorder(Species.1, -Abundance, FUN = sum),y= Abundance), stat= "identity", width = 0.9) +
   theme_classic()+
   theme(strip.background = element_rect(color="white", fill="white", size=1.5, linetype="solid"),
         strip.text.x = element_text(size = 14, color = "black"),
@@ -186,10 +197,12 @@ ggplot(Plot$data) +
   ylab("Abundance")
 ggsave("Species_Abundance.png", dpi = 300)
 
-Plot$data
+
+Plot2 <- plot_bar(Oomycete2, "Label", fill = "Sand")
+Plot2$data
 #fircats for stacked bars without sand reference
-p2022 = ggplot(Plot$data) +
-  geom_bar(aes(x=reorder(Label, -Abundance, FUN = sum),y= Abundance), stat= "identity", width = 0.9) +
+p2022 = ggplot(Plot2$data) +
+  geom_bar(aes(x=reorder(Species.1, -Abundance, FUN = sum),y= Abundance), stat= "identity", width = 0.9) +
   theme_classic()+
   theme(strip.background = element_rect(color="white", fill="white", size=1.5, linetype="solid"),
         strip.text.x = element_text(size = 14, color = "black"),
@@ -204,7 +217,6 @@ p2022 = ggplot(Plot$data) +
   ylab("Abundance")
 ggsave("Species_Abundance.png", dpi = 300)
 
-p2022
 
 ggpubr::ggarrange(p2021, p2022, nrow = 2, labels = c("a", "b"))
 
@@ -263,7 +275,7 @@ shapiro.test(oomycete$CEC)
 
 #SpearmanCorrelation (CEC)
 
-cor.test(oomycete2$Sand, oomycete2$richness, method=c("spearman"), exact = FALSE)
+cor.test(oomycete2$CEC, oomycete2$richness, method=c("spearman"), exact = FALSE)
 
 
 #PearsonCorrelation (Clay/Sand)
@@ -390,12 +402,12 @@ ggplot() +
 ggsave("Survey2021Map.png", dpi = 300)
 
 #Plot for Seed Pathogenicity
-Pathogenicity <- read.csv("~/Kemi/My Research/Oomycete Research/Oomycete_Combined/All Pathogenicity.csv", na.strings = "N/A")
+Pathogenicity <- read.csv("~/Kemi/My Research/Oomycete Research/Oomycete_Combined/Pathogenicity_Manuscript.csv", na.strings = "N/A")
 Pathogenicity2 <- na.omit(Pathogenicity)
 
 Pathogenicity %>%
-  group_by(Isolate_Code, Species) %>%
-  summarise(mean=mean(DSI)) %>%
+  group_by(Isolate.Code, Species) %>%
+  summarise(mean=mean(Mean_DSI)) %>%
   ggplot(aes(x=reorder(Species, mean), mean, fill = ""))  + 
   stat_summary(fun.data = mean_se, geom = "bar", position = position_dodge(width = 0.9)) +
   stat_summary(fun.data = mean_se, geom = "errorbar", width = 0.2, position = position_dodge(width = 1)) +
@@ -418,7 +430,7 @@ Pathogenicity_2021 = Pathogenicity %>%
 
 #Subsetting to 2021 repeated only
 Pathogenicity %>%
-  group_by(Isolate_Code, Species) %>%
+  group_by(Isolate.Code, Species) %>%
   subset(Year == 2021) %>%
   summarise(mean=mean(DSI)) %>%
   ggplot(aes(x=reorder(Species, mean), mean, fill = ""))  + 
