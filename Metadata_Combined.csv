@@ -1,0 +1,27 @@
+Sample,Location_Code,Year,Sand,Silt,Clay ,CEC,SOM,pH ,Planting Date,Date Collected,Days after planting,Seed Variety,Seed treatment,County,Soil Type,Soil series,Latitude,Longitude,Description,Location,Ave_Soil_Moisture,Sum_Precipitation,Ave_Soil_Temp
+TVREC1_2021,TVREC,2021,15.63,44.38,40,7.63,5.5,5.7,4/30/21,5/7/21,7,na,na,Limestone,Limestone Valleys and Uplands,,34.686,-86.887,Tennesee Valley Field 1,North,0.085882353,4.3,65.98294118
+TVREC2_2021,TVREC,2021,18.13,43.75,38.13,9.8,5,5.5,4/28/21,5/17/21,19,DeltaPine 2038 B3XF,Acceleron,Limestone,Limestone Valleys and Uplands,,34.693,-86.887,Tennesee Valley Field 2,North,0.085882353,4.3,65.98294118
+EVS1_2021,EVS,2021,63.13,17.5,19.38,3.7,1.2,6.3,4/27/21,5/12/21,15,na,na,Macon,Blackland Prairie,,32.49,-85.885,"E.V. Smith Field 1, PBU",Central ,0.164166667,4.18,69.72083333
+EVS2_2021,EVS,2021,75.63,6.88,17.5,2.44,1.1,6.3,5/7/21,5/21/21,14,Delta Pine 399,Acceleron,Macon,Blackland Prairie,,32.422,-85.886,"E.V. Smith Field 2, FCU",Central ,0.112727273,5.38,71.91272727
+PRATTVILLE1_2021,PRATTVILLE,2021,64.38,5.63,30,5.38,2.7,5.9,4/29/21,5/19/21,20,DeltaPine 1646,Acceleron,Autauga,Coastal Plain,,32.426,-86.448,Prattville Field 1,Central ,0.089473684,2.88,70.12263158
+PRATTVILLE2_2021,PRATTVILLE,2021,59.38,10.63,30,6.21,3.2,5.8,4/29/22,5/19/22,20,DeltaPine 1646,Acceleron,Autauga,Coastal Plain,,32.425,-86.445,Prattville Field 2,Central ,0.089473684,2.88,70.12263158
+BREWTON1_2021,BREWTON,2021,74.38,8.13,17.5,4.19,2.1,6.3,5/17/21,6/3/21,17,Stoneville 4990 B3XF,Prime,Escambia,Coastal Plain,,31.146,-87.052,Brewton Field 1,South,18.16,0.07,77.1
+BREWTON2_2021,BREWTON,2021,65.63,14.38,20,3.75,1.9,6,5/17/21,6/3/21,17,Phytogen 400 W3FE,PhytogenTrio,Escambia,Coastal Plain,,31.146,-87.052,Brewton Field 1,South,18.16,0.07,77.1
+GULFCOAST1_2021,GULFCOAST,2021,46.88,27.5,25.63,9.73,5.4,5.9,5/20/21,6/10/21,21,DP2055,Acceleron,Baldwin,Coastal Plain,,30.538,-87.884,Gulfcoast Field 1,South,0.335833333,1.95,80.66333333
+GULFCOAST2_2021,GULFCOAST,2021,33.13,31.88,35,10.97,7.1,5.9,5/18/21,6/10/21,23,DP399,Acceleron,Baldwin,Coastal Plain,,30.538,-87.884,Gulfcoast Field 2,South,0.335833333,1.95,80.66333333
+LAWRENCE1_2021,LAWRENCE,2021,33.13,46.88,20,16.17,7.2,6.5,5/28/21,6/22/21,25,Phytogen 443 W3FE,PhytogenTrio,Lawrence,Appalachian Plateau,,34.68,-87.36,Rocky Hill Farm,North,na,na,na
+LAWRENCE2_2021,LAWRENCE,2021,26.88,44.38,28.75,11.63,5.1,6.2,5/28/21,6/22/21,25,Phytogen 443 W3FE,Acceleron,Lawrence,Appalachian Plateau,,34.68,-87.29,Looly Coone Farm,North,na,na,na
+WIREGRASS_2021,WIREGRASS,2021,81.88,0.63,17.5,1.43,1.3,6.1,6/15/21,6/29/21,14,DP2038,Acceleron,Henry,Coastal Plain,,31.381,-85.314,Wiregrass,South,1.62,0.738571429,80.09642857
+TVREC1_2022,TVREC,2022,11,56,34,7.72,3,4.9,5/12/22,6/2/22,21,DeltaPine 2038 B3XF,Acceleron,Limestone,Limestone Valleys and Uplands,,34.69,-86.88,Tennesee Valley Field 1,North,0.117272727,2.68,74.35227273
+TVREC2_2022,TVREC,2022,12,46,42,6.44,2.4,4.9,5/18/22,6/2/22,15,DeltaPine 2115 B3XF,Acceleron,Limestone,Limestone Valleys and Uplands,,34.686,-86.889,Tennesee Valley Field 2,North,0.117272727,2.68,74.35227273
+EVS1_2022,EVS,2022,81,0,19,3.19,1.1,5.1,5/4/22,6/7/22,34,DeltaPine 1646,Acceleron,Macon,Blackland Prairie,,32.49,-85.885,"E.V. Smith Field 1, PBU",Central ,21.40371429,1.66,74.65485714
+EVS2_2022,EVS,2022,81,0,19,8.25,0.8,7.5,5/4/22,6/7/22,34,DeltaPine 1646,Acceleron,Macon,Blackland Prairie,,32.422,-85.886,"E.V. Smith Field 2, PBU",Central ,21.40371429,1.66,74.65485714
+PRATTVILLE1_2022,PRATTVILLE,2022,58,14,28,7.27,2.8,5.4,5/18/22,6/7/22,20,DeltaPine 1646,Acceleron,Autauga,Coastal Plain,,32.426,-86.444,Prattville Field 1,Central ,0.299047619,5.31,78.3952381
+PRATTVILLE2_2022,PRATTVILLE,2022,62,9,29,5.75,2.1,5.7,5/20/22,6/7/22,18,DeltaPine 1647,Acceleron,Autauga,Coastal Plain,,32.425,-86.447,Prattville Field 2,Central ,0.299047619,5.31,78.3952381
+BREWTON1_2022,BREWTON,2022,82,0,18,4.21,1.4,5.4,5/1/22,5/31/22,30,DeltaPine 1646,Acceleron,Escambia,Coastal Plain,,31.142,-87.048,Brewton Field 1,South,41.51612903,6.18,77.89903226
+BREWTON2_2022,BREWTON,2022,80,0,20,3.3,1.7,5.2,5/1/22,5/31/22,30,DeltaPine 1646,Acceleron,Escambia,Coastal Plain,,31.143,-87.049,Brewton Field 1,South,41.51612903,6.18,77.89903226
+GULFCOAST1_2022,GULFCOAST,2022,61,14,25,6.59,2.8,5.4,5/10/22,5/31/22,21,DeltaPine 2038 B3XF,Acceleron,Baldwin,Coastal Plain,,30.541,-87.883,Gulfcoast Field 1,South,0.139545455,5.74,79.94318182
+GULFCOAST2_2022,GULFCOAST,2022,57,15,28,5.57,2.8,5.1,5/19/22,5/31/22,12,Phytogen 400 W3FE,PhytogenTrio,Baldwin,Coastal Plain,,30.542,-87.879,Gulfcoast Field 2,South,0.139545455,5.74,79.94318182
+LAWRENCE1_2022,LAWRENCE,2022,15,52,34,16.83,3.5,5.6,5/5/22,6/2/22,28,DeltaPine 1646,Acceleron,Lawrence,Appalachian Plateau,,34.67,-87.23,Rocky Hill Farm,North,na,na,na
+LAWRENCE2_2022,LAWRENCE,2022,22,40,38,8.99,2.7,6.1,5/12/22,6/2/22,21,DeltaPine 1646,Acceleron,Lawrence,Appalachian Plateau,,34.68,-87.27,Looly Coone Farm,North,na,na,na
+WIREGRASS_2022,WIREGRASS,2022,80,0,20,3.28,1.2,5.3,5/4/22,5/23/22,19,DeltaPine 2020,Acceleron,Henry,Coastal Plain,,31.379,-85.311,Wiregrass,South,170.9655,2.23,74.5925
