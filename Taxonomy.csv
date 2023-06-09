@@ -1,0 +1,37 @@
+Species_num,Kingdom,Phylum,Class,Order ,Family,Genus,Species,Clade,Label
+Sp1,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Globisporangium,Globisporangium irregulare,Globisporangium Clade F,G. irregulare
+Sp2,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Globisporangium,Globisporangium spinosum,Globisporangium Clade F,G. spinosum
+Sp3,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Pythium,Pythium inflatum,Pythium Clade B,Py. inflatum
+Sp4,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Globisporangium,Globisporangium orthogonon,Globisporangium Clade J,G. orthogonon
+Sp5,Stramenopila,Oomycota,Oomycete,Lagenidiales,Lagenidiaceae,Lagenidium,Lagenidium sp.,unknown,L. sp. 
+Sp6,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Pythium,Pythium deliense,Pythium Clade A,Py. deliense
+Sp7,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Pythium,Pythium oligandrum/cedri,Pythium Clade D,Py. oligandrum/cedri
+Sp8,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Globisporangium,Globisporangium acanthophoron,Globisporangium Clade J,G. acanthophoron
+Sp9,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Phytopythium,Phytopythium cucurbitacearum,Phytopythium Clade K,Phy. cucurbitacearum
+Sp10,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Phytopythium,Phytopythium helicoides,Phytopythium Clade K,Phy. helicoides
+Sp11,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Pythium,Pythium aristosporum,Pythium Clade B,Py. aristosporum
+Sp12,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Pythium,Pythium sp. D37,unknown,Py. sp. D37
+Sp13,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Pythium,Pythium torulosum,Pythium Clade B,Py. torulosum
+Sp14,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Pythium,Pythium acanthicum,Pythium Clade D,Py. acanthicum
+Sp15,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Globisporangium,Globisporangium rostratifingens,Globisporangium Clade E,G. rostratifingens
+Sp16,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Globisporangium,Globisporangium sylvaticum,Globisporangium Clade F,G. sylvaticum
+Sp17,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Globisporangium,Globisporangium longandrum,Globisporangium Clade E,G. longandrum
+Sp18,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Globisporangium,Globisporangium perplexum,Globisporangium Clade J,G. perplexum
+Sp19,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Globisporangium,Globisporangium sp. UZ277,unknown,G. sp. UZ277
+Sp20,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Pythium,Pythium vanterpoolii,Pythium Clade B,Py. vanterpoolii
+Sp21,Stramenopila,Oomycota,Oomycete,Peronosporales,Peronosporaceae,Phytophthora,Phytophthora nicotianae,Phytophthora Clade 1,P. nicotianae
+Sp22,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Globisporangium,Globisporangium attrantheridium,Globisporangium Clade F,G. attrantheridium
+Sp23,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Globisporangium,Globisporangium sp. Lev1523,unknown,G. sp. Lev1523
+Sp24,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Pythium,Pythium dissotocum,Pythium Clade B,Py. dissotocum
+Sp25,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Globisporangium,Globisporangium heterothallicum,Globisporangium Clade I,G. heterothallicum
+Sp26,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Globisporangium,Globisporangium nunn,Globisporangium Clade J,G. nunn
+Sp27,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Globisporangium,Globisporangium yorkense,Globisporangium Clade J,G. yorkense
+Sp28,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Pythium,Pythium periplocum,Pythium Clade D,Py. periplocum
+Sp29,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Pythium,Pythium sp. P056,unknown,Py. sp. P056
+Sp30,Stramenopila,Oomycota,Oomycete,Peronosporales,Peronosporaceae,Phytophthora,Phytophthora cactorum,Phytophthora Clade 1,P. cactorum
+Sp31,Stramenopila,Oomycota,Oomycete,Peronosporales,Peronosporaceae,Phytophthora,Phytophthora aff. rosacearum,Phytophthora Clade 6,P. aff. rosacearum
+Sp32,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Pythium,Pythium coloratum,Pythium Clade B,Py. coloratum
+Sp33,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Pythium,Pythium oopapillum,Pythium Clade B,Py. oopapillum
+Sp34,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Globisporangium,Globisporangium glomeratum,Globisporangium Clade I,G. glomeratum
+Sp35,Stramenopila,Oomycota,Oomycete,Pythiales,Pythiaceae,Globisporangium,Globisporangium minus/pleroticum,Globisporangium Clade E,G. minus/pleroticum
+Sp36,Stramenopila,Oomycota,Oomycete,Lagenidiales,Lagenidiaceae,Lagenidium,Lagenidium sp. SLG-2014b LEV 6562,unknown,L. sp. SLG-2014b LEV 6562
