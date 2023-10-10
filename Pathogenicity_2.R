@@ -8,35 +8,35 @@ library(dplyr)
 
 cbbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00")
 options(dplyr.print_max = 1e9)
-STAND <- read.csv("Pathogenicity.csv", na.strings = "NA")
+path <- read.csv("Pathogenicity.csv", na.strings = "NA")
 
-counted.STAND <- STAND %>%
+# Number of isolates tested
+counted <- path %>%
   group_by(Label) %>%
   dplyr::count() %>%
-  mutate(is.count = n/6) %>%
-  mutate(keep = ifelse(is.count > 1, "Keep", "No")) %>%
-  mutate(keep = ifelse(Label %in% c("G. acanthophoron",
-                                    "Py. oligandrum/cedri",
-                                    "G. nunn", 
-                                    "G. longandrum", 
-                                    "Py. periplocum"), "No", keep)) %>%
-  dplyr::filter(keep == "Keep") 
+  mutate(is.count = n/6) # divide by six due to three reps across two trials = 6 plates per isolate
 
-filtered.STAND <- subset(STAND, Label %in% counted.STAND$Label) 
+# Number of isolates tested
+unique(path$IsolateCode)
 
-lm1 <- lm(DSI_1 ~ Label, data = filtered.STAND)
-lm2 <- lmer(DSI_1 ~ Label + (1|Isolate.Code/Trial), data = filtered.STAND)
-lm3 <- lmer(DSI_1 ~ Label + (1|Isolate.Code/Trial) + (1|Isolate.Code/Label), data = filtered.STAND)
+lm1 <- lm(DSI ~ Label, data = path)
+lm2 <- lmer(DSI ~ Label + (1|Set), data = path)
+lm3 <- lmer(DSI ~ Label + (1|Set) + (1|Trial), data = path)
+lm4 <- lmer(DSI ~ Label + (1|Set) + (1|IsolateCode/Label), data = path)
+lm5 <- lmer(DSI ~ Label + (1|Set) + (1|IsolateCode/Label) + (1|Trial), data = path)
 
-anova(lm1, lm2, lm3)
+# The LRT tells us that the fourth model is the best, which is the one with isolates within set and isolates within species as a random factor
+anova(lm5, lm4, lm3, lm2, lm1) # Going with Model 4
 
+# Basically models that include the Trial as a random factor were no better. So dropping that as a random factor did not matter. 
+# Lowest AIC is also lm4
 
-AIC(lm3)
-summary(lm2)
-plot(lm2)
-car::Anova(lm2)
+anova(lm4, lm2) # just comparing lm2 to lm4 and lm4 is better with including isolate nested within species as a random factor. 
 
-lsmeans <- emmeans(lm2, ~Label) # estimate lsmeans of variety within siteXyear
+plot(lm3)
+car::Anova(lm3)
+
+lsmeans <- emmeans(lm3, ~Label) # estimate lsmeans of variety within siteXyear
 Results_lsmeansEC <- multcomp::cld(lsmeans, alpha = 0.05, adjust = "bon", reversed = TRUE, details = TRUE, Letters = letters) # contrast with Tukey ajustment
 Results_lsmeansEC
 
@@ -47,12 +47,12 @@ colnames(sig.diff.letters) <- c("Label",
                                 "Letters")
 
 # for plotting with letters from significance test
-ave_dsi <- filtered.STAND %>%
+ave_dsi <- path %>%
   group_by(Label) %>%
   dplyr::summarize(
-    ave.dsi = mean(DSI_1, na.rm=TRUE),
+    ave.dsi = mean(DSI, na.rm=TRUE),
     n = n(),
-    se = sd(DSI_1)/sqrt(n)) %>%
+    se = sd(DSI)/sqrt(n)) %>%
   left_join(sig.diff.letters) %>%
   arrange(-ave.dsi)
 
@@ -65,19 +65,13 @@ dsi.path <- ggplot(ave_dsi, aes(x = reorder(Label, -ave.dsi), y = ave.dsi)) +
   xlab("Location") +
   xlab("")+
   theme_classic() +
-  theme(
-    strip.background = element_rect(color="white", fill="white", size=1.5, linetype="solid"),
-    strip.text.x = element_text(size = 12, color = "black"),
-    legend.position="right",
-    legend.title = element_blank(),
-    axis.text.x = element_text(angle = 45, hjust=1))
+  theme(axis.text.x = element_text(angle = 45, hjust=1, face = "italic"))
 dsi.path
-
-means <- filtered.STAND %>%
+means <- path %>%
   group_by(Label) %>%
-  summarise(Mean = mean(DSI_1), 
+  summarise(Mean = mean(DSI), 
             n = n(), 
-            sd.dev = sd(DSI_1)) %>%
+            sd.dev = sd(DSI)) %>%
   mutate(std.err = sd.dev/sqrt(n)) %>%
   arrange(-Mean) 
 
