@@ -3,6 +3,8 @@ library(tidyr)
 library(ggpubr)
 library(lme4)
 library(emmeans)
+library(stringr)
+library(dplyr)
 
 cbbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00")
 options(dplyr.print_max = 1e9)
@@ -10,25 +12,26 @@ STAND <- read.csv("Pathogenicity.csv", na.strings = "NA")
 
 counted.STAND <- STAND %>%
   group_by(Label) %>%
-  count() %>%
+  dplyr::count() %>%
   mutate(is.count = n/6) %>%
   mutate(keep = ifelse(is.count > 1, "Keep", "No")) %>%
-  mutate(keep = ifelse(Label == "G. acanthophoron", "Keep", keep)) %>%
-  mutate(keep = ifelse(Label %in% c("Py. oligandrum/cedri",
+  mutate(keep = ifelse(Label %in% c("G. acanthophoron",
+                                    "Py. oligandrum/cedri",
                                     "G. nunn", 
                                     "G. longandrum", 
                                     "Py. periplocum"), "No", keep)) %>%
-  filter(keep == "Keep") %>%
-  print(n = 30)
+  dplyr::filter(keep == "Keep") 
 
 filtered.STAND <- subset(STAND, Label %in% counted.STAND$Label) 
 
-lm2 <- lmer(DSI_1 ~ Label + (1|Code/Trial), data = filtered.STAND)
-lm3 <- lm(DSI_1 ~ Label, data = filtered.STAND)
-anova(lm2, lm3)
+lm1 <- lm(DSI_1 ~ Label, data = filtered.STAND)
+lm2 <- lmer(DSI_1 ~ Label + (1|Isolate.Code/Trial), data = filtered.STAND)
+lm3 <- lmer(DSI_1 ~ Label + (1|Isolate.Code/Trial) + (1|Isolate.Code/Label), data = filtered.STAND)
+
+anova(lm1, lm2, lm3)
 
 
-AIC(lm2)
+AIC(lm3)
 summary(lm2)
 plot(lm2)
 car::Anova(lm2)

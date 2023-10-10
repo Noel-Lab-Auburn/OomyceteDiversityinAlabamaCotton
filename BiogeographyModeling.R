@@ -9,16 +9,14 @@ library(tidyverse)
 library(lme4)
 library(emmeans)
 library(ggcorrplot)
-library(microshades)
 library(psych)
 library(broom)
 library(AER)
 library(MASS)
 
 # for plotting the map
-devtools::install_github("UrbanInstitute/urbnmapr")
+#devtools::install_github("UrbanInstitute/urbnmapr")
 library(urbnmapr)
-library(urbnthemes)
 ########################
 
 ###### Color palettes used in this code #####
@@ -32,14 +30,58 @@ fungi.colors <- c("#c6dbef","#9ecae1","#6baed6","#3182bd","#08519c",
                   "#fcbba1", "#fc9272", "#fb6a4a", "#ef3b2c", "#cb181d", "#99000d",
                   "#d9d9d9", "#bdbdbd", "#969696", "#737373", "#525252", "#252525")
 
-
-hex_values <-c(microshades_palette("micro_orange",3, lightest = FALSE), 
-               microshades_palette("micro_blue",3, lightest = FALSE), 
-               microshades_palette("micro_purple",3, lightest = FALSE), microshades_palette("micro_gray", 3, lightest = FALSE), microshades_palette("micro_brown",3, lightest = FALSE) ,microshades_palette("micro_green",2, lightest = FALSE)) 
 ################################
+
+##### Read in weather data #####
+weather <- read.csv("WeatherData_Oomycetes/combine_weather.csv", na.strings = "na")
+weather$Date_time <- as.Date(weather$Date_time, "%m/%d/%y")
+ave_weather_tocollection <- weather %>%
+  group_by(Sample) %>%
+  summarise(mean_min_air_temp = mean(Min_Air_Temperature),
+            mean_max_air_temp = mean(Max_Air_Temperature),
+            mean_ave_air_temp = mean(Average_Temperature),
+            sum_precip = sum(Precipitation),
+            min_soil_temp = min(Min_Soil_Temperature),
+            mean_max_soil_temp = mean(Max_Soil_Temperature),
+            mean_ave_soil_temp = mean(Soil_Temperature),
+            mean_ave_soil_moist = mean(Soil_Moisture),
+            min_min_soil_moist = min(Min_Soil_Moisture), # cbar higher is dryer
+            #std
+            std_min_air_temp = sd(Min_Air_Temperature),
+            std_max_air_temp = sd(Max_Air_Temperature),
+            std_ave_air_temp = sd(Average_Temperature),
+            std_precip = sd(Precipitation),
+            std_min_soil_temp = sd(Min_Soil_Temperature),
+            std_max_soil_temp = sd(Max_Soil_Temperature),
+            std_ave_soil_temp = sd(Soil_Temperature),
+            std_ave_soil_moist = sd(Soil_Moisture),
+            std_max_soil_moist = sd(Max_Soil_Moisture),
+            std_min_soil_moist = sd(Min_Soil_Moisture)
+  )
+
+weather_three_days <- weather %>%
+  group_by(Sample) %>%
+  top_n(-3, wt = Date_time) %>%
+  summarise(sum_precip_threeday = sum(Precipitation), 
+            min_soil_temp_threeday = min(Min_Soil_Temperature),
+            soil_moist_threeday = min(Soil_Moisture)) # cbar higher is dryer
+
+weather_five_days <- weather %>%
+  group_by(Sample) %>%
+  top_n(-5, wt = Date_time) %>%
+  summarise(sum_precip_fiveday = sum(Precipitation), 
+            min_soil_temp_fiveday = min(Min_Soil_Temperature),
+            soil_moist_fiveday = max(Soil_Moisture)) # cbar higher is dryer
+
 
 ##### Generate phyloseq input from culture collection list ##### 
 cultures <- read.csv("2023-05-08_IsolateCollection.csv")
+
+### How many isolates were isolated
+n.isolates <- cultures %>%
+  group_by(Location_Code) %>%
+  summarise(cnt = n()) 
+
 
 ##### Species Count Table #####
 OTU.table <- cultures %>%
@@ -59,9 +101,14 @@ OTU <- phyloseq::otu_table(OTU.table, taxa_are_rows = TRUE)
 
 ##### Meta data ####
 samp_dat <- read.csv("Metadata_Combined.csv", na.strings = "na")
-rownames(samp_dat) <- samp_dat$Sample
-samp_dat <- samp_dat[,-1]
-SAMP <- phyloseq::sample_data(samp_dat)
+samp_dat2 <- left_join(samp_dat, ave_weather_tocollection, by = "Sample")
+samp_dat3 <- left_join(samp_dat2, n.isolates, by = c("Sample" = "Location_Code"))
+samp_dat4 <- left_join(samp_dat3, weather_three_days, by = "Sample")
+samp_dat5 <- left_join(samp_dat4, weather_five_days, by = "Sample")
+
+rownames(samp_dat5) <- samp_dat5$Sample
+samp_dat5 <- samp_dat5[,-1]
+SAMP <- phyloseq::sample_data(samp_dat5)
 
 ##### Taxonomy Table ####
 tax <- read.csv("Taxonomy.csv")
@@ -75,30 +122,82 @@ all.equal(sort(species_tax_table), sort(otu_table_names))
 
 #Combines all data into a phyloseq object
 oomycetes <- phyloseq::phyloseq(OTU, TAX, SAMP)
-
+oomycetes@sam_data
 ##### RDS File #####
+
+
 
 # save an RDS file to make it easy and more reproducible to load in the data. 
 saveRDS(oomycetes, "oomycete_phyloseq_final.RDS")
 oomycetes <- readRDS("oomycete_phyloseq_final.RDS")
 
-#### Figure 1. Map of sampling ####
+# New meta.data with all the weather information on it. 
 meta.data <- data.frame(oomycetes@sam_data) # needed to grab the lat and long.
+
+##### Get the closest NOAA weather station for searching the 30 year normals ##### 
+#### From Pat Schloss Tutorial on how to get local past weather from the closeset NOAA weather station
+inventory_url <- "https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-inventory.txt"
+
+inventory <- read_table(inventory_url,
+                        col_names = c("station", "lat", "lon", "variable", "start", "end"))
+
+samp_dat5$lat_rads <- samp_dat5$Latitude * 2 * pi / 360
+samp_dat5$long_rads <- samp_dat5$Longitude * 2 * pi / 360
+#my_lat <- 42.33831964441621 * 2 * pi / 360
+#my_lon <- -83.88938389977316 * 2 * pi / 360
+
+
+# Distance, d = 3963.0 * arccos[(sin(lat1) * sin(lat2)) + cos(lat1) * cos(lat2) * cos(long2 – long1)]
+# 
+# The obtained distance, d, is in miles. If you want your value to be in units of kilometers, multiple d by 1.609344.
+# d in kilometers = 1.609344 * d in miles
+
+inventory$lat_r <- inventory$lat *2 *pi/360
+inventory$lon_r <- inventory$lon *2 *pi/360
+
+weather.sum2 <- NULL
+for (i in 1:nrow(samp_dat5)) {
+  
+  inventory$d_miles = 1.609344 * 3963 * acos((sin(inventory$lat_r) * sin(samp_dat5$lat_rads[[i]])) + cos(inventory$lat_r) * cos(samp_dat5$lat_rads[[i]]) * cos(samp_dat5$long_rads[[i]] - inventory$lon_r))
+  station <- filter(inventory, start < 1991 & end > 2020) %>%
+    top_n(n = -1, d_miles) %>%
+    distinct(station, d_miles) 
+  samp_dat5_i <- cbind.data.frame(samp_dat5[i,], station)
+  weather.sum2 <- rbind.data.frame(samp_dat5_i, weather.sum2)
+} 
+
+weather.sum2$kilometers <- weather.sum2$d_miles * 1.60934
+weather.sum2$kilometers
+
+write.csv(weather.sum2, "weather_expanded.csv")
+
+### Specifically for EVSmith, since the station it chose does not have 30- year norms. the next closest one does.
+inventory$d_miles = 1.609344 * 3963 * acos((sin(inventory$lat_r) * sin(samp_dat5$lat_rads[[11]])) + cos(inventory$lat_r) * cos(samp_dat5$lat_rads[[11]]) * cos(samp_dat5$long_rads[[11]] - inventory$lon_r))
+station <- filter(inventory, start < 1991 & end > 2020) %>%
+  top_n(n = -10, d_miles) %>%
+  distinct(station, d_miles) 
+
+#### Figure 1. Map of sampling ####
+# Load in acrage planted map
+cottonacres <- read.csv("CottonAcresPlanted.csv", na.strings = "na")
+
+
 meta.data$County2 <- paste(meta.data$County, "County") 
 alabama <- countydata %>% 
   left_join(counties, by = "county_fips") %>% 
   filter(state_name =="Alabama") 
+head(alabama)
+alabama2 <- left_join(alabama, cottonacres, by = c("county_name"))
 
-alabama$sampled <- ifelse(alabama$county_name %in% unique(meta.data$County2), "Sampled", "Not Sampled")
+alabama2$sampled <- ifelse(alabama2$county_name %in% unique(meta.data$County2), "Sampled", "Not Sampled")
 
 ggplot() +
-  geom_polygon(data = alabama, mapping = aes(long, lat, group = group, fill = sampled), color = "black", size = .25) +
-  geom_point(data = meta.data, aes(x=Longitude, y=Latitude, shape = as.factor(Year)), fill = "black", size= 2, alpha = 0.5) +
+  geom_polygon(data = alabama2, mapping = aes(long, lat, group = group, fill = Hectares), color = "black", size = .25) +
+  geom_point(data = meta.data, aes(x=Longitude, y=Latitude, shape = as.factor(Year)), size= 2, alpha = 0.5, position=position_jitter(h=0.02, w=0.03)) +
   theme_void() +
-  scale_shape_manual(values = c(21,22))+
-  scale_fill_manual(name="County", values = c("white", cbbPalette[[1]]))  +
-  guides(fill=guide_legend(override.aes=list(shape=21)))+
-  labs(shape="Year", colour="County")
+  scale_shape_manual(values = c(21,24))+
+  scale_fill_gradient2(low = cbbPalette[[3]], mid = "grey", high = cbbPalette[[4]], midpoint = 5000, na.value = "white", breaks = c(2000, 4000, 6000, 8000, 10000, 12000)) +
+  labs(shape="Year", fill="Ave. Hectares \n Planted") +
 theme(axis.line=element_blank(),
       axis.text.x=element_blank(),
       axis.text.y=element_blank(),
@@ -148,20 +247,19 @@ cultures %>%
 
 ### plot of species counts
 fig2.species.counts <- cultures %>%
-  group_by(Year, Manuscript_Species) %>%
+  group_by(Year, Label) %>%
   summarise(cnt = n()) %>%
   mutate(freq = cnt / sum(cnt)) %>% 
   arrange(desc(freq)) %>%
-  ggplot(aes(x = reorder(Manuscript_Species, freq), y = freq, fill = as.factor(Year))) + 
-  geom_col(position = position_dodge2(width = 0.9, preserve = "single")) +
+  ggplot(aes(x = reorder(Label, freq), y = freq, fill = as.factor(Year))) + 
+  geom_col(position = position_dodge2(width = 0.9, preserve = "single"), color = "black") +
   coord_flip() + 
   scale_fill_manual(values = cbbPalette[3:4]) + 
   theme_classic() +
   xlab("") +
   ylab("Percent recovery") +
   scale_y_continuous(labels = scales::percent) +
-  guides(fill=guide_legend(title="Year")) +
-  theme(legend.position = c(0.8, 0.2))
+  guides(fill=guide_legend(title="Year")) 
 fig2.species.counts
 
 #### plot of clade counts
@@ -181,42 +279,93 @@ clade.counts <- cultures %>%
 clade.counts
 
 #### Alpha diversity ####
+
 # Adds the alpha diversity measure to the metadata
 oomycetes@sam_data$shannon <- estimate_richness(oomycetes, measures=c("Shannon"))$Shannon #shannon diversity index
+oomycetes@sam_data$simpson <- estimate_richness(oomycetes, measures=c("Simpson"))$Simpson #simpson diversity index
 oomycetes@sam_data$richness <- estimate_richness(oomycetes, measures=c("Observed"))$Observed #observed number of taxa
 oomycetes@sam_data$even <- oomycetes@sam_data$shannon/log(oomycetes@sam_data$richness) #plieou's evenness
+
+### Alpha diversity on 30-year normals ### 
+merged.oomycete.30year <- merge_samples(sample_data(oomycetes), "Location_Code") # averages everything by the location 
+merged.oomycete.30year$year_30_norm_precip_may_cm <- merged.oomycete.30year$year_30_norm_precip_may*2.54
+merged.oomycete.30year$annual_30_year_normal_cm <- merged.oomycete.30year$annual_30_year_normal_in*2.54
+merged.oomycete.30year$spring_30_year_precip_cm <- merged.oomycete.30year$spring_30_year_precip_in*2.54
+
+
+
+
+# plot with letters 
+richness.30year <- ggplot(merged.oomycete.30year, aes(x = year_30_norm_precip_may_cm, y = richness)) + 
+  geom_point() +
+  geom_smooth(method = "lm", se = F, color = "black") +
+  ylab("Richness") + 
+  xlab("30-year-normal Precipitation (cm)") +
+  theme_classic() +
+  stat_cor(label.y = 2)+ 
+  stat_regline_equation(label.y = 2.5) 
+richness.30year
+
 
 ##### Correlation plot ####
 meta.data <- data.frame(oomycetes@sam_data)
 
 cor.plot.test <- meta.data %>%
-  dplyr::select(Sand, Silt, Clay, CEC,	SOM, pH, Days.after.planting, Latitude,	Longitude, even, richness, Ave_Soil_Moisture, Sum_Precipitation, Ave_Soil_Temp) 
+  dplyr::select(Sand, # % sand
+                Silt, # % silt
+                Clay, # % clay
+                CEC,	# % CEC
+                SOM, # % Soil organic matter
+                pH, # ph of soil
+                Days.after.planting, # days after planting collection
+                Days.to.planting, # days to planting after start of year
+                Latitude,	
+                Longitude, 
+                sum_precip, # sum precipitation from planting to collection
+                min_soil_temp, # min soil temp from planting to collection
+                min_min_soil_moist, # min soil moist (higher is dryer) from planting to collection
+                sum_precip_threeday, # sum precipitation three days post planting
+                min_soil_temp_threeday, # min soil temp three days post planting
+                soil_moist_threeday, # soil moisture three days post planting
+                richness, # richness, number of species
+                shannon,# shannon diversity index
+                simpson, # simpson diversity index
+                even, # Pileou's evenness
+                cnt # count of number of isolates recovered
+                ) 
 
-cor.plot <- psych::corr.test(cor.plot.test, method = "spearman", use = "complete.obs", adjust = "holm")
+cor.plot <- psych::corr.test(cor.plot.test, method = "spearman", use = "pairwise")
 
 cor.r <- cor.plot$r
 cor.p <- cor.plot$p
 
 names <- c("% Sand", 
-  "% Silt", 
-  "% Clay",
-  "CEC", 
-  "SOM", 
-  "pH", 
-  "DAP", 
-  "Lat.",
-  "Long.",
-  "Evenness",
-  "Richness",
-  "Ave. Soil Moist. (cb)",
-  "Sum Precip.",
-  "Ave. Soil Temp.")
+ "% Silt", 
+ "% Clay",
+ "CEC", 
+ "SOM", 
+ "pH", 
+ "Days after planting", 
+ "Days to planting",
+ "Lat.",
+ "Long.",
+ "Sum precipitation",
+ "Min. Soil Temperature",
+ "Min. Soil Moisture (centibar)",
+ "Sum precipitation \n three days post planting",
+ "Min. Soil Temperature \n three days post planting",
+ "Min. Soil Moisture (centibar) \n three days post planting",
+ "Richness",
+ "Shannon",
+ "Simpson",
+ "Evenness",
+ "Number of oomycete \n isolates recovered")
 
 colnames(cor.r) <- names
 row.names(cor.r) <- names
 
-corelation.plot <- ggcorrplot(cor.r, p.mat = cor.p, 
-           hc.order = FALSE, 
+corelation.plot <- ggcorrplot(cor.r, 
+           hc.order = TRUE, 
            tl.cex = 5,
            outline.col = "grey", 
            type = "lower",
@@ -284,7 +433,7 @@ richness.location <- ggplot(meta.data, aes(x = Location, y = richness)) +
   theme_classic() 
 richness.location
 
-##### Soil properties, SAND and richness ####
+##### Soil properties, SAND ####
 pois.mod <- glm(richness ~ Sand, data=data.frame(oomycetes@sam_data), 
                 family="poisson")
 summary(pois.mod)
@@ -313,6 +462,20 @@ sand.richness <- ggplot(oomycetes@sam_data, aes(x = Sand, y = richness, color = 
   geom_line(data = fortify(pois.mod), aes(x = Sand, y = exp(.fitted)), color = "black") +
   #geom_smooth(method = "glm", se = F,
   #method.args = list(family = "poisson"), color = "black") +
+  geom_point() +
+  theme_classic() + 
+  scale_color_gradient2(low = cbbPalette[[3]], mid = "grey", high = cbbPalette[[4]], midpoint = 32.5) +
+  #scale_y_continuous(labels = scales::percent) + 
+  xlab("% Sand") +
+  ylab("Richness") 
+sand.richness
+
+
+sand.richness <- ggplot(oomycetes@sam_data, aes(x = Silt + Clay, y = richness, color = Latitude)) + 
+  
+  #geom_line(data = fortify(pois.mod), aes(x = Sand, y = exp(.fitted)), color = "black") +
+  geom_smooth(method = "glm", se = F,
+  method.args = list(family = "poisson"), color = "black") +
   geom_point() +
   theme_classic() + 
   scale_color_gradient2(low = cbbPalette[[3]], mid = "grey", high = cbbPalette[[4]], midpoint = 32.5) +
@@ -427,12 +590,17 @@ exp(-4.98056) * exp(0.20313*33)
 
 # we found that for every degree increase in latitude we isolated 1.23 times as many oomycete species
 
-
-lat.rich <- ggplot(oomycetes@sam_data, aes(x = Latitude, y = richness, color = Latitude)) + 
+# Quadratic regression due to the drop in richness at midlatitudes
+meta.data$Latitude2 <- meta.data$Latitude^2
+quadratic.model <-lm(richness ~ Latitude + I(Latitude^2), data=meta.data)
+summary(quadratic.model)
+AIC(quadratic.model)
+AIC(pois.mod.lat2)
+lat.rich <- ggplot(oomycetes@sam_data, aes(x = Latitude, y = richness)) + 
   
-  geom_line(data = fortify(pois.mod.lat2), aes(x = Latitude, y = exp(.fitted)), color = "black") +
-  #geom_smooth(method = "glm", se = F,
-  #method.args = list(family = "poisson"), color = "black") +
+  geom_line(data = fortify(pois.mod.lat2), aes(x = Latitude, y = exp(.fitted)), color = "black", size = 0.5) +
+  #geom_line(data = fortify(quadratic.model), aes(x = Latitude, y = exp(.fitted)), color = "black") +
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2), size = 0.5, color = "black", se = FALSE) +
   geom_point() +
   theme_classic() + 
   scale_color_gradient2(low = cbbPalette[[3]], mid = "grey", high = cbbPalette[[4]], midpoint = 32.5) + 
@@ -482,29 +650,48 @@ pois.mod.seedvariety <- glm(richness ~ Seed.Variety, data=data.frame(oomycetes@s
 
 summary(pois.mod.seedvariety)
 car::Anova(pois.mod.seedvariety)
-##### Precipitation - not sig ####
-pois.mod.precip <- glm(richness ~ Sum_Precipitation, data=data.frame(oomycetes@sam_data), 
+##### Precipitation from planting to collection - not sig ####
+pois.mod.precip <- glm(richness ~ sum_precip, data=data.frame(oomycetes@sam_data), 
                     family="poisson")
 
 summary(pois.mod.precip)
 car::Anova(pois.mod.precip)
 
-##### Soil moisture - not sig ####
-pois.mod.sm <- glm(richness ~ Ave_Soil_Moisture, data=data.frame(oomycetes@sam_data), 
+##### Soil moisture from planting to collection - not sig ####
+pois.mod.sm <- glm(richness ~ min_min_soil_moist, data=data.frame(oomycetes@sam_data), 
                        family="poisson")
 
 summary(pois.mod.sm)
 car::Anova(pois.mod.sm)
-##### Soil temp - not sig ####
-pois.mod.st <- glm(richness ~ Ave_Soil_Temp, data=data.frame(oomycetes@sam_data), 
+##### Soil temp from planting to collection - not sig ####
+pois.mod.st <- glm(richness ~ min_soil_temp, data=data.frame(oomycetes@sam_data), 
+                   family="poisson")
+
+summary(pois.mod.st)
+car::Anova(pois.mod.st)
+
+##### Precipitation from three day - not sig ####
+pois.mod.precip <- glm(richness ~ sum_precip_threeday, data=data.frame(oomycetes@sam_data), 
+                       family="poisson")
+
+summary(pois.mod.precip)
+car::Anova(pois.mod.precip)
+
+##### Soil moisture from three day - not sig ####
+pois.mod.sm <- glm(richness ~ soil_moist_threeday, data=data.frame(oomycetes@sam_data), 
+                   family="poisson")
+
+summary(pois.mod.sm)
+car::Anova(pois.mod.sm)
+##### Soil temp three day - not sig ####
+pois.mod.st <- glm(richness ~ min_soil_temp_threeday, data=data.frame(oomycetes@sam_data), 
                    family="poisson")
 
 summary(pois.mod.st)
 car::Anova(pois.mod.st)
 
 
-
-##### Soil temp - not sig ####
+##### Year ####
 pois.mod.year <- glm(richness ~ as.factor(Year), data=data.frame(oomycetes@sam_data), 
                    family="quasipoisson")
 
@@ -519,37 +706,8 @@ plot1 <- ggarrange(lat.rich,
           sand.richness,
           som.rich, labels = "auto", common.legend = T, ncol = 2, nrow = 3)
 
-#### Specific species isolation successes #### 
 
-#### Irregulare #### 
-irregulare.presence <- oomycetes %>%
-  subset_taxa(Species=="Globisporangium irregulare") %>%
-  psmelt() %>%
-  mutate(present = ifelse(Abundance > 0, 1, 0))
-
-log.glm <- glm(present ~ Latitude*as.factor(Year), data=irregulare.presence, 
-                     family=binomial(link = "logit"))
-summary(log.glm)
-car::Anova(log.glm)
-exp(0.02479)
-# We found that for each 1 degree increase in Latitude Globisporangium irregulare was  
-
-#### Phytophthora nicotianea #### 
-phytophthora.presence <- oomycetes %>%
-  subset_taxa(Species=="Phytophthora nicotianae") %>%
-  psmelt() %>%
-  mutate(present = ifelse(Abundance > 0, 1, 0))
-
-log.glm.phyt <- glm(present ~ Latitude, data=phytophthora.presence, 
-               family=binomial(link = "logit"))
-car::Anova(log.glm.phyt)
-summary(log.glm.phyt)
-exp(0.8766) #2.4 times as likely with increase in latitude
-confint(log.glm.phyt)
-exp(0.2702209)
-exp(1.662061)
-# We found that for each 1 degree increase in Latitude Phytophthora nicotianae was 2.4 (1.31 to 5.27; 95% CL) times as likely to be isolated (P = 0.012). 
-
+  
 
 #### Beta Diversity #####
 
@@ -566,32 +724,97 @@ global.data.axis2.var <- pcoa.ordination$values$Relative_eig[[2]]
 #Permanova - Permutational Multivariate ANOVA
 
 oomycete.dist.jaccard = phyloseq::distance(oomycetes, "jaccard") #creates distance matrix (0 (similar) 1 (non-similar))
-adonis2(oomycete.dist.jaccard~as.factor(Year), as(sample_data(oomycetes), "data.frame"), permutations = 9999) 
+adonis2(oomycete.dist.jaccard~as.factor(Year)+
+          Latitude+
+          Longitude+
+          Sand+
+          Silt+
+          Clay+
+          CEC+
+          Days.after.planting, as(sample_data(oomycetes), "data.frame"), permutations = 9999, by = "onedf") 
 
 ### plot ###
 ggplot() + 
-  geom_point(data = global.data2, aes(x = Axis.1, y = Axis.2, shape = as.factor(Year), fill = Location), alpha = 0.8, size = 2) +
+  geom_point(data = global.data2, aes(x = Axis.1, y = Axis.2, shape = as.factor(Year), color = Latitude), alpha = 0.8, size = 2) +
   theme_bw() +
   ylab("PCoA2") + 
   xlab("PCoA1") +
-  scale_fill_manual(values=cbbPalette) +
-  scale_shape_manual(values=c(21, 22)) +
+  scale_color_gradient2(low = cbbPalette[[3]], mid = "grey", high = cbbPalette[[4]], midpoint = 32.5) + 
   guides(fill=guide_legend(override.aes=list(shape=21)))
 
 
-####### Figure 4 - Plotting bar plot with sand colored in #########
-plot.bar <- plot_bar(oomycetes, x = "Species", y = "Abundance", fill = "Sand", facet_grid = "Year")
+####### Figure 4 - Plotting heat map with soil texture#########
+meta.data$Location_Code <- rownames(meta.data)
+datf <- cultures %>%
+  group_by(Location_Code, Label) %>%
+  summarise(cnt = n()) %>%
+  mutate(freq = cnt / sum(cnt)) %>%
+  left_join(meta.data, by = "Location_Code")
 
-ggplot(plot.bar$data) +
-  geom_col(aes(x=reorder(Label, -Abundance), y= Abundance, fill = Sand), width = 0.9) +
-  theme_classic()+
-  theme(strip.background = element_rect(color="white", fill="white", size=1.5, linetype="solid"),
-        strip.text.x = element_text(size = 14, color = "black"),
-        axis.text.x=element_text(angle =90, vjust = 0.5, hjust = 1)) +
-  scale_fill_gradient2(low = cbbPalette[[3]], mid = "grey", high = cbbPalette[[4]], midpoint = 50) +
-  xlab("") +
-  ylab("Abundance") +
-  facet_wrap(~Year)
+datt <- left_join(fig2.species.counts$data, datf, by = "Label") # just for ordering properties
 
+Fig4heatmap <- ggplot(data = datt, aes(x = reorder(Location_Code, Latitude), y = reorder(Label, freq.x), fill = Silt+Clay)) + 
+  geom_tile(colour = "black") +
+  scale_size_continuous(name = "Count") +
+  scale_fill_gradient2(low = cbbPalette[[3]], mid = "grey", high = cbbPalette[[4]], midpoint = 60) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        axis.text.y = element_text(face = "italic")) +
+    xlab("") + 
+    ylab("")
 
+#### Specific species isolation successes #### 
 
+#### Irregulare #### 
+irregulare.presence <- oomycetes %>%
+  subset_taxa(Species=="Globisporangium irregulare") %>%
+  psmelt() %>%
+  mutate(present = ifelse(Abundance > 0, 1, 0))
+
+log.glm <- glm(present ~ Latitude*as.factor(Year), data=irregulare.presence, 
+               family=binomial(link = "logit"))
+summary(log.glm)
+car::Anova(log.glm)
+
+# We found that for each 1 degree increase in Latitude Globisporangium irregulare was  
+
+# Specific species plots
+fig4b <- ggplot(irregulare.presence, aes(x = Latitude, y = present)) +
+  geom_smooth(method = "glm", se = F,
+              method.args = list(family = binomial(link = "logit")), color = "black") +
+  geom_point(position=position_jitter(h=0.00, w=0.06), alpha = 0.6) + 
+  theme_classic() + 
+  scale_y_continuous(limits = c(0, 1), breaks = c(0,1)) + 
+  ylab("Presence/Absence of \n Globisporangium irregulare")
+
+#### Phytophthora nicotianea #### 
+phytophthora.presence <- oomycetes %>%
+  subset_taxa(Species=="Phytophthora nicotianae") %>%
+  psmelt() %>%
+  mutate(present = ifelse(Abundance > 0, 1, 0))
+
+log.glm.phyt <- glm(present ~ Latitude, data=phytophthora.presence, 
+                    family=binomial(link = "logit"))
+car::Anova(log.glm.phyt)
+summary(log.glm.phyt)
+exp(0.8766) #2.4 times as likely with increase in latitude
+confint(log.glm.phyt)
+exp(0.2702209)
+exp(1.662061)
+# We found that for each 1 degree increase in Latitude Phytophthora nicotianae was 2.4 (1.31 to 5.27; 95% CL) times as likely to be isolated (P = 0.012). 
+
+# Specific species plots
+fig4c <- ggplot(phytophthora.presence, aes(x = Latitude, y = present)) +
+  geom_smooth(method = "glm", se = F,
+              method.args = list(family = binomial(link = "logit")), color = "black") +
+  geom_point(position=position_jitter(h=0.00, w=0.06), alpha = 0.6) + 
+  theme_classic() + 
+  scale_y_continuous(limits = c(0, 1), breaks = c(0,1)) + 
+  ylab("Presence/Absence of \n Phytophthora nicotianae")
+
+ggarrange(Fig4heatmap, label = "a", 
+          ggarrange(fig4b, fig4c, nrow = 2, labels = c("b", "c")))
+
+  
+  
+  
