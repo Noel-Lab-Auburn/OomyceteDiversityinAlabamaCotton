@@ -33,10 +33,10 @@ anova(lm5, lm4, lm3, lm2, lm1) # Going with Model 4
 
 anova(lm4, lm2) # just comparing lm2 to lm4 and lm4 is better with including isolate nested within species as a random factor. 
 
-plot(lm3)
-car::Anova(lm3)
+plot(lm4)
+car::Anova(lm4)
 
-lsmeans <- emmeans(lm3, ~Label) # estimate lsmeans of variety within siteXyear
+lsmeans <- emmeans(lm4, ~Label) # estimate lsmeans of variety within siteXyear
 Results_lsmeansEC <- multcomp::cld(lsmeans, alpha = 0.05, adjust = "bon", reversed = TRUE, details = TRUE, Letters = letters) # contrast with Tukey ajustment
 Results_lsmeansEC
 
@@ -56,17 +56,63 @@ ave_dsi <- path %>%
   left_join(sig.diff.letters) %>%
   arrange(-ave.dsi)
 
+ave_dsi$Label <- factor(ave_dsi$Label, levels = c("Positive Control",
+                                                  "Negative Control",
+                                                  "G. attrantheridium",
+                                                  "G. heterothallicum",
+                                                  "G. irregulare",
+                                                  "G. orthogonon",
+                                                  "G. perplexum",
+                                                  "G. rostratifingens",
+                                                  "G. spinosum",
+                                                  "G. sp. Lev1523",
+                                                  "G. sylvaticum",
+                                                  
+                                                  "Phy. cucurbitacearum",
+                                                  "Phy. helicoides",
+                                                  
+                                                  "P. nicotianae",
+                                                  
+                                                  "Py. acanthicum",
+                                                  "Py. deliense",
+                                                  "Py. dissotocum",
+                                                  "Py. torulosum"))
+
+x.axis.labels <- c("Positive Control",
+  "Negative Control",
+  "G. attrantheridium (n = 4)",
+  "G. heterothallicum (n = 2)",
+  "G. irregulare (n = 8)",
+  "G. orthogonon (n = 3)",
+  "G. perplexum (n = 4)",
+  "G. rostratifingens (n = 4)",
+  "G. spinosum (n = 3)",
+  "G. sp. Lev1523 (n = 2)",
+  "G. sylvaticum (n = 4)",
+  
+  "Phy. cucurbitacearum (n = 4)",
+  "Phy. helicoides (n = 3)",
+  
+  "P. nicotianae (n = 5)",
+  
+  "Py. acanthicum (n = 3)",
+  "Py. deliense (n = 6)",
+  "Py. dissotocum (n = 2)",
+  "Py. torulosum (n = 3)")
+
 # plot with letters 
-dsi.path <- ggplot(ave_dsi, aes(x = reorder(Label, -ave.dsi), y = ave.dsi)) + 
+dsi.path <- ggplot(ave_dsi, aes(x = Label, y = ave.dsi)) + 
   geom_col()+
-  geom_errorbar(aes(x=reorder(Label, -ave.dsi), ymin=ave.dsi+(se), ymax=ave.dsi-(se)), width = 0.5)+
+  geom_errorbar(aes(x=Label, ymin=ave.dsi+(se), ymax=ave.dsi-(se)), width = 0.5)+
   geom_text(aes(label = Letters, y = ave.dsi+(2*se)), vjust = -0.5) +
+  scale_x_discrete(labels = x.axis.labels)+
   ylab("% Disease Severity Index") + 
   xlab("Location") +
   xlab("")+
   theme_classic() +
   theme(axis.text.x = element_text(angle = 45, hjust=1, face = "italic"))
 dsi.path
+
 means <- path %>%
   group_by(Label) %>%
   summarise(Mean = mean(DSI), 

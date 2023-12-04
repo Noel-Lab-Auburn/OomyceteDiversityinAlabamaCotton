@@ -32,6 +32,44 @@ fungi.colors <- c("#c6dbef","#9ecae1","#6baed6","#3182bd","#08519c",
 
 ################################
 
+##### Figure 1. Map of sampling ####
+# Load in acrage planted map
+cottonacres <- read.csv("CottonAcresPlanted.csv", na.strings = "na")
+
+
+meta.data$County2 <- paste(meta.data$County, "County") 
+alabama <- countydata %>% 
+  left_join(counties, by = "county_fips") %>% 
+  filter(state_name =="Alabama") 
+head(alabama)
+alabama2 <- left_join(alabama, cottonacres, by = c("county_name"))
+
+alabama2$sampled <- ifelse(alabama2$county_name %in% unique(meta.data$County2), "Sampled", "Not Sampled")
+
+ggplot() +
+  geom_polygon(data = alabama2, mapping = aes(long, lat, group = group, fill = Hectares), color = "black", size = .25) +
+  geom_point(data = meta.data, aes(x=Longitude, y=Latitude, shape = as.factor(Year)), size= 2, alpha = 0.5, position=position_jitter(h=0.02, w=0.03)) +
+  theme_void() +
+  scale_shape_manual(values = c(21,24))+
+  scale_fill_gradient2(low = cbbPalette[[3]], mid = "grey", high = cbbPalette[[4]], midpoint = 5000, na.value = "white", breaks = c(2000, 4000, 6000, 8000, 10000, 12000)) +
+  labs(shape="Year", fill="Ave. Hectares \n Planted") +
+  theme(axis.line=element_blank(),
+        axis.text.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks=element_blank(),
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        legend.position="right",
+        panel.background=element_blank(),
+        panel.border=element_blank(),
+        panel.grid.major=element_blank(),
+        panel.grid.minor=element_blank(),
+        plot.background=element_blank())
+ggsave("SurveyMap.png", dpi = 300)
+
+
+
+
 ##### Read in weather data #####
 weather <- read.csv("WeatherData_Oomycetes/combine_weather.csv", na.strings = "na")
 weather$Date_time <- as.Date(weather$Date_time, "%m/%d/%y")
@@ -111,40 +149,6 @@ oomycetes <- readRDS("oomycete_phyloseq_final.RDS")
 # New meta.data with all the weather information on it. 
 meta.data <- data.frame(oomycetes@sam_data) # needed to grab the lat and long.
 
-##### Figure 1. Map of sampling ####
-# Load in acrage planted map
-cottonacres <- read.csv("CottonAcresPlanted.csv", na.strings = "na")
-
-
-meta.data$County2 <- paste(meta.data$County, "County") 
-alabama <- countydata %>% 
-  left_join(counties, by = "county_fips") %>% 
-  filter(state_name =="Alabama") 
-head(alabama)
-alabama2 <- left_join(alabama, cottonacres, by = c("county_name"))
-
-alabama2$sampled <- ifelse(alabama2$county_name %in% unique(meta.data$County2), "Sampled", "Not Sampled")
-
-ggplot() +
-  geom_polygon(data = alabama2, mapping = aes(long, lat, group = group, fill = Hectares), color = "black", size = .25) +
-  geom_point(data = meta.data, aes(x=Longitude, y=Latitude, shape = as.factor(Year)), size= 2, alpha = 0.5, position=position_jitter(h=0.02, w=0.03)) +
-  theme_void() +
-  scale_shape_manual(values = c(21,24))+
-  scale_fill_gradient2(low = cbbPalette[[3]], mid = "grey", high = cbbPalette[[4]], midpoint = 5000, na.value = "white", breaks = c(2000, 4000, 6000, 8000, 10000, 12000)) +
-  labs(shape="Year", fill="Ave. Hectares \n Planted") +
-theme(axis.line=element_blank(),
-      axis.text.x=element_blank(),
-      axis.text.y=element_blank(),
-      axis.ticks=element_blank(),
-      axis.title.x=element_blank(),
-      axis.title.y=element_blank(),
-      legend.position="right",
-      panel.background=element_blank(),
-      panel.border=element_blank(),
-      panel.grid.major=element_blank(),
-      panel.grid.minor=element_blank(),
-      plot.background=element_blank())
-ggsave("SurveyMap.png", dpi = 300)
 
 ##### Figure 2. General Isolation Stats ####
 ## How many species were recovered in 2021?
@@ -228,9 +232,9 @@ merged.oomycete.30year$spring_30_year_precip_cm <- merged.oomycete.30year$spring
 merged.oomycete.30year$richness <- round(merged.oomycete.30year$richness)
 
 #### Correlation plot with the merged dataset 30-year averages #####
-meta.data <- data.frame(merged.oomycete.30year)
+meta.data.30year <- data.frame(merged.oomycete.30year)
 
-cor.plot.test <- meta.data %>%
+cor.plot.test <- meta.data.30year %>%
   dplyr::select(Sand, # % sand
                 Silt, # % silt
                 Clay, # % clay
@@ -246,7 +250,6 @@ cor.plot.test <- meta.data %>%
                 richness, # richness, number of species
                 shannon,# shannon diversity index
                 simpson, # simpson diversity index
-                year_30_norm_precip_may_cm,
                 annual_30_year_normal_cm
   ) 
 
@@ -270,24 +273,30 @@ names <- c("% Sand",
            "Richness",
            "Shannon",
            "Simpson",
-           "30Y-May",
-           "30Y-Annual"
+           "30Y-Normal Precip."
 )
 
 colnames(cor.r) <- names
 row.names(cor.r) <- names
 
-corelation.plot.30year <- ggcorrplot(cor.r, 
-                              hc.order = TRUE, 
+year30norm.r <- as.matrix(cor.r[,16])
+year30norm.p <- as.matrix(cor.p[,16])
+
+colnames(year30norm.r) <- "30Y-Normal Precip."
+
+
+corelation.plot.30year <- ggcorrplot(year30norm.r, 
                               tl.cex = 5,
                               outline.col = "grey", 
-                              #p.mat = cor.p,
+                              p.mat = year30norm.p,
                               #type = "lower",
                               insig = "blank", 
-                              ggtheme = ggplot2::theme_minimal,
+                              ggtheme = ggplot2::theme_void,
                               colors = c(cbbPalette[[3]], "white", cbbPalette[[4]]))
 
 #### Correlation plot with the full dataset ####
+
+## NOTE I am including the 30 year precipitation data, but this includes the same values for several fields and thus represents a pseudoreplication. Therefore, I manually remove the significant squares so it matches the merged correlation plot done above. 
 meta.data <- data.frame(oomycetes@sam_data)
 
 cor.plot.test <- meta.data %>%
@@ -306,13 +315,18 @@ cor.plot.test <- meta.data %>%
                 richness, # richness, number of species
                 shannon,# shannon diversity index
                 simpson, # simpson diversity index
-                even
+                annual_30_year_normal_in
                 ) 
 
-cor.plot <- psych::corr.test(cor.plot.test, method = "spearman", use = "pairwise")
+cor.plot <- psych::corr.test(cor.plot.test, method = "spearman")
 
 cor.r <- cor.plot$r
 cor.p <- cor.plot$p
+
+# manual correction to avoid overinterpretation based on peudoreplication
+cor.p[16,8] <- 1
+cor.p[16,9] <- 1
+cor.p[16,12] <- 1
 
 names <- c("% Sand", 
  "% Silt", 
@@ -329,24 +343,23 @@ names <- c("% Sand",
  "Richness",
  "Shannon",
  "Simpson",
- "Even"
+ "30Y-Normal Precip."
 )
 
 colnames(cor.r) <- names
 row.names(cor.r) <- names
 
 corelation.plot <- ggcorrplot(cor.r, 
-           hc.order = TRUE, 
            tl.cex = 5,
            outline.col = "grey", 
            p.mat = cor.p,
-           #type = "lower",
+           type = "lower",
            insig = "blank", 
-           ggtheme = ggplot2::theme_minimal,
+           ggtheme = ggplot2::theme_void,
            colors = c(cbbPalette[[3]], "white", cbbPalette[[4]]))
 
 #### Location - North, Central, South ####
-# for every X - unit change in X we onserved a exp^b times as many species.  
+# for every X - unit change in X we observed a exp^b times as many species.  
 # 1 exp^b
 # 2. Times as many for counts 
 # 3. report confidence interval - exp^lower to exp^upper
@@ -406,13 +419,14 @@ richness.location <- ggplot(meta.data, aes(x = Location, y = richness)) +
 richness.location
 
 #### Thirty year normals #####
-pois.mod.30year <- glm(richness ~ year_30_norm_precip_may_cm, data=data.frame(merged.oomycete.30year), 
+pois.mod.30year <- glm(richness ~ annual_30_year_normal_cm, data=data.frame(merged.oomycete.30year), 
                 family="poisson")
 summary(pois.mod.30year)
 
 # plot with letters 
-richness.30year <- ggplot(merged.oomycete.30year, aes(x = sum_precip, y = richness, color = Latitude)) + 
+richness.30year <- ggplot(merged.oomycete.30year, aes(x = annual_30_year_normal_cm, y = richness, color = Latitude)) + 
   geom_point() +
+  stat_cor(method = "spearman") +
   geom_smooth(method = "glm", se = F,
               method.args = list(family = "poisson"), color = "black") +
   scale_color_gradient2(low = cbbPalette[[3]], mid = "grey", high = cbbPalette[[4]], midpoint = 32.5) +
@@ -430,18 +444,15 @@ degree.freedom <- summary(pois.mod)[[7]] # residual deviance
 resid.deviance/degree.freedom # pretty good for overdispersion
 car::Anova(pois.mod) #sand is a significant predictor of oomycete species richness
 confint(pois.mod)
-exp(pois.mod$coefficients[[2]]) # for modeled coefficient
-exp(confint(pois.mod)[[2]]) # for lower CI of sand
-exp(confint(pois.mod)[[4]]) # for upper CI of sand
+exp(pois.mod$coefficients[[1]]) # for modeled coefficient the intercept
+exp(10*-pois.mod$coefficients[[2]]) # for modeled coefficient the beta
+exp(10*-confint(pois.mod)[[2]]) # for lower CI of sand
+exp(10*-confint(pois.mod)[[4]]) # for upper CI of sand
 AIC(pois.mod)
 dispersiontest(pois.mod) # no significant overdispersion
 tidy(pois.mod, exponentiate = TRUE, conf.int = TRUE)
 
-exp(2.450757)
-(0.98*50)+11 #60
-exp(60)
-exp(1.45)
-# equation: y = e^2.45-0.017x
+# equation: y = e^11.8-0.983x
 # We found that with every 1 % increase in sand, there were 0.98 times as many species isolated (p < 0.001)
 
 sand.richness <- ggplot(oomycetes@sam_data, aes(x = Sand, y = richness, color = Latitude)) + 
@@ -493,6 +504,10 @@ exp(pois.mod.silt$coefficients[[2]]) # for modeled coefficient
 summary(pois.mod.silt)
 AIC(pois.mod.silt)
 car::Anova(pois.mod.silt)
+exp(10*pois.mod.silt$coefficients[[2]]) # for modeled coefficient - beta
+exp(10*confint(pois.mod.silt)[[2]]) # for lower CI of silt for 10% increase
+exp(10*confint(pois.mod.silt)[[4]]) # for upper CI of silt for 10% increase
+
 dispersiontest(pois.mod.silt)
 # equation: y = e^1.08 + 0.023x 
 silt.rich <- ggplot(oomycetes@sam_data, aes(x = Silt, y = richness, color = Latitude)) + 
@@ -512,6 +527,11 @@ pois.mod.clay <- glm(richness ~ Clay, data=data.frame(oomycetes@sam_data),
 summary(pois.mod.clay)
 car::Anova(pois.mod.clay)
 dispersiontest(pois.mod.clay)
+exp(pois.mod.clay$coefficients[[2]]) # for modeled coefficient
+exp(confint(pois.mod.clay)[[2]]) # for lower CI of sand
+exp(confint(pois.mod.clay)[[4]]) # for upper CI of sand
+
+
 
 clay.rich <- ggplot(oomycetes@sam_data, aes(x = Clay, y = richness, color = Latitude)) + 
   
@@ -525,17 +545,20 @@ clay.rich <- ggplot(oomycetes@sam_data, aes(x = Clay, y = richness, color = Lati
 clay.rich
 
 #### SOM #####
-# regular poisson model was significanlty overdispersed so using a quasipoisson
-pois.mod.SOM2 <- glm(richness ~ SOM, data=data.frame(oomycetes@sam_data), 
-                     family="quasipoisson")
+pois.mod.SOM <- glm(richness ~ SOM, data=data.frame(oomycetes@sam_data), 
+                     family="poisson")
 
-summary(pois.mod.SOM2)
-car::Anova(pois.mod.SOM2)
+dispersiontest(pois.mod.SOM)
+exp(pois.mod.SOM$coefficients[[2]]) # for modeled coefficient
+exp(confint(pois.mod.SOM)[[2]]) # for lower CI of sand
+exp(confint(pois.mod.SOM)[[4]]) # for upper CI of sand
+summary(pois.mod.SOM)
+car::Anova(pois.mod.SOM)
 
 som.rich <- ggplot(oomycetes@sam_data, aes(x = SOM, y = richness, color = Latitude)) + 
   
   geom_smooth(method = "glm", se = F,
-              method.args = list(family = "quasipoisson"), color = "black") +
+              method.args = list(family = "poisson"), color = "black") +
   geom_point() +
   theme_classic() + 
   scale_color_gradient2(low = cbbPalette[[3]], mid = "grey", high = cbbPalette[[4]], midpoint = 32.5) + 
@@ -545,16 +568,21 @@ som.rich
 
 
 #### Latitude ####
-pois.mod.lat2 <- glm(richness ~ Latitude, data=data.frame(oomycetes@sam_data), 
-                    family="quasipoisson")
+pois.mod.lat <- glm(richness ~ Latitude, data=data.frame(oomycetes@sam_data), 
+                    family="poisson")
 
-summary(pois.mod.lat2)
-AIC(pois.mod.lat2)
-anova(pois.mod.lat2)
+dispersiontest(pois.mod.lat)
+exp(pois.mod.lat$coefficients[[2]]) # for modeled coefficient
+exp(confint(pois.mod.lat)[[2]]) # for lower CI of sand
+exp(confint(pois.mod.lat)[[4]]) # for upper CI of sand
 
+
+summary(pois.mod.lat)
+AIC(pois.mod.lat)
+car::Anova(pois.mod.lat)
+exp(0.21078)
 # equation
-exp(-4.98056) * exp(0.20313*33)
-exp(pois.mod.lat2$coefficients[[2]]) # for modeled coefficient
+exp(-5.24888) * exp(0.21078*33)
 
 # we found that for every degree increase in latitude we isolated 1.23 times as many oomycete species
 
@@ -563,11 +591,11 @@ meta.data$Latitude2 <- meta.data$Latitude^2
 quadratic.model <-lm(richness ~ Latitude + I(Latitude^2), data=meta.data)
 summary(quadratic.model)
 AIC(quadratic.model)
-AIC(pois.mod.lat2)
+AIC(pois.mod.lat)
 lat.rich <- ggplot(oomycetes@sam_data, aes(x = Latitude, y = richness)) + 
   
   geom_smooth(method = "glm", se = F,
-              method.args = list(family = "quasipoisson"), color = "black") +
+              method.args = list(family = "poisson"), color = "black") +
   stat_smooth(method = "lm", formula = y ~ x + I(x^2), color = "black", se = FALSE) +
   geom_point() +
   theme_classic() + 
@@ -582,25 +610,27 @@ pois.mod.long2 <- glm(richness ~ Longitude, data=data.frame(oomycetes@sam_data),
                      family="poisson")
 
 summary(pois.mod.long2)
-AIC(pois.mod.lat2)
+AIC(pois.mod.long2)
 dispersiontest(pois.mod.long2)
-exp(pois.mod.long2$coefficients[[2]]) # for modeled coefficient
+exp(pois.mod.long2$coefficients[[1]]) # for modeled coefficient - intercept
+exp(-pois.mod.long2$coefficients[[2]]) # for modeled coefficient - beta
+exp(-confint(pois.mod.long2)[[2]]) # for lower CL
+exp(-confint(pois.mod.long2)[[4]]) # for upper CL
 
 # equation
-exp(-4.98056) * exp(0.20313*33)
+exp(-31.7147) * exp(-0.3841*33)
 # we found that for every degree increase in longitude we isolated 0.68 times as many oomycete species
 
 long.rich <- ggplot(oomycetes@sam_data, aes(x = Longitude, y = richness, color = Latitude)) + 
   
   geom_smooth(method = "glm", se = F,
-              method.args = list(family = "quasipoisson"), color = "black") +
+              method.args = list(family = "poisson"), color = "black") +
   geom_point() +
   theme_classic() + 
   scale_color_gradient2(low = cbbPalette[[3]], mid = "grey", high = cbbPalette[[4]], midpoint = 32.5) + 
   xlab("Longitude") +
   ylab("Richness") 
 long.rich
-
 
 #### Days after planting - not sig ####
 pois.mod.dap <- glm(richness ~ Days.after.planting, data=data.frame(oomycetes@sam_data), 
@@ -610,16 +640,28 @@ summary(pois.mod.dap)
 car::Anova(pois.mod.dap)
 #### Seed treatment - not sig ####
 pois.mod.seedtreatment <- glm(richness ~ Seed.treatment, data=data.frame(oomycetes@sam_data), 
-                    family="quasipoisson")
+                    family="poisson")
 
 summary(pois.mod.seedtreatment)
 car::Anova(pois.mod.seedtreatment)
 #### Variety - not sig ####
-pois.mod.seedvariety <- glm(richness ~ Seed.Variety, data=data.frame(oomycetes@sam_data), 
-                              family="quasipoisson")
-
+meta.data <- data.frame(oomycetes@sam_data)
+seed.treatment.meta.data <- meta.data %>%
+  filter(Seed.Variety %in% c("DP 1646 B2XF", "DP 2038 B3XF"))
+pois.mod.seedvariety <- glm(richness ~ Seed.Variety, data=seed.treatment.meta.data, 
+                              family="poisson")
+dispersiontest(pois.mod.seedvariety)
 summary(pois.mod.seedvariety)
 car::Anova(pois.mod.seedvariety)
+
+lsmeans <- emmeans(pois.mod.seedvariety, ~Seed.Variety) # estimate lsmeans of variety within siteXyear
+Results_lsmeansEC <- multcomp::cld(lsmeans, alpha = 0.05, reversed = TRUE, details = TRUE, Letters = letters) # contrast with Tukey ajustment
+Results_lsmeansEC
+
+ggplot(seed.treatment.meta.data, aes(x = Seed.Variety, y = richness)) +
+  geom_boxplot()
+
+
 #### Precipitation from planting to collection - not sig ####
 pois.mod.precip <- glm(richness ~ sum_precip, data=data.frame(oomycetes@sam_data), 
                     family="poisson")
@@ -633,6 +675,19 @@ pois.mod.sm <- glm(richness ~ mean_ave_soil_moist, data=data.frame(oomycetes@sam
 
 summary(pois.mod.sm)
 car::Anova(pois.mod.sm)
+
+som.rich <- ggplot(oomycetes@sam_data, aes(x = mean_ave_soil_moist, y = richness, color = Latitude)) + 
+  
+  geom_smooth(method = "glm", se = F,
+              method.args = list(family = "poisson"), color = "black") +
+  geom_point() +
+  theme_classic() + 
+  scale_color_gradient2(low = cbbPalette[[3]], mid = "grey", high = cbbPalette[[4]], midpoint = 32.5) + 
+  xlab("Soil Moisture (cbar)") +
+  ylab("Richness") 
+som.rich
+
+
 #### Soil temp from planting to collection - not sig ####
 pois.mod.st <- glm(richness ~ mean_min_soil_temp, data=data.frame(oomycetes@sam_data), 
                    family="poisson")
@@ -640,49 +695,52 @@ pois.mod.st <- glm(richness ~ mean_min_soil_temp, data=data.frame(oomycetes@sam_
 summary(pois.mod.st)
 car::Anova(pois.mod.st)
 
-#### Precipitation from three day - not sig ####
-pois.mod.precip <- glm(richness ~ sum_precip_threeday, data=data.frame(oomycetes@sam_data), 
-                       family="poisson")
-
-summary(pois.mod.precip)
-car::Anova(pois.mod.precip)
-
-#### Soil moisture from three day - not sig ####
-pois.mod.sm <- glm(richness ~ soil_moist_threeday, data=data.frame(oomycetes@sam_data), 
-                   family="poisson")
-
-summary(pois.mod.sm)
-car::Anova(pois.mod.sm)
-#### Soil temp three day - not sig ####
-pois.mod.st <- glm(richness ~ min_soil_temp_threeday, data=data.frame(oomycetes@sam_data), 
-                   family="poisson")
-
-summary(pois.mod.st)
-car::Anova(pois.mod.st)
 
 
 #### Year ####
 pois.mod.year <- glm(richness ~ as.factor(Year), data=data.frame(oomycetes@sam_data), 
-                   family="quasipoisson")
+                   family="poisson")
 
 summary(pois.mod.year)
 car::Anova(pois.mod.year)
 
 ####### Figure 3 - plot #####
 
-plot1 <- ggarrange(clay.rich, 
+plot1 <- ggarrange(long.rich,
+                   clay.rich, 
                    silt.rich, 
           cec.richness, 
           sand.richness,
           som.rich,
-          long.rich,
           labels = c("b", "c", "d", "e", "f", "g"), common.legend = T, ncol = 3, nrow = 2)
 
 ggarrange(corelation.plot, plot1, labels = "a", nrow = 1)
 
+
 #### Beta Diversity #####
 
 # The strategy for beta diversity analysis was to use Jaccard index on binary data since we don't feel that with culture dependent methods we fully captured the abundance and thus would not be appropraite to use Bray-Curtis. 
+
+##### 30Y normal precipitation values - based on averages across county.####
+merged.oomycete.30year.physeq <- merge_samples(oomycetes, "Location_Code") # averages everything by the location 
+meta.data.30year
+env <- meta.data.30year %>% 
+  dplyr::select(Sand, # % sand
+                Silt, # % silt
+                Clay, # % clay
+                CEC,	# % CEC
+                SOM, # % Soil organic matter
+                pH,
+                annual_30_year_normal_in # ph of soil
+
+  )
+
+# pcoa #
+ord <- wcmdscale(vegdist(merged.oomycete.30year.physeq@otu_table, distance = "jaccard", binary = T), eig = T)
+plot(ord)
+ord$eig/sum(ord$eig)*100 # proportion explained each axis
+fit <- envfit(ord, env, perm = 9999, na.rm = TRUE) # fitting the environmental data to the first two pcoa axes
+
 
 ####### Permanova - Permutational Multivariate ANOVA ####
 set.seed(12573)
@@ -786,7 +844,7 @@ irregulare.presence <- oomycetes %>%
   psmelt() %>%
   mutate(present = ifelse(Abundance > 0, 1, 0))
 
-log.glm <- glm(present ~ Latitude*as.factor(Year), data=irregulare.presence, 
+log.glm <- glm(present ~ Latitude, data=irregulare.presence, 
                family=binomial(link = "logit"))
 summary(log.glm)
 car::Anova(log.glm)
@@ -802,7 +860,27 @@ fig4d <- ggplot(irregulare.presence, aes(x = Latitude, y = present)) +
   scale_y_continuous(limits = c(0, 1), breaks = c(0,1)) + 
   ylab("Presence/Absence of \n Globisporangium irregulare")
 
+######## Weather Data ##### 
 
+meta.data$rain_per_day <- meta.data$sum_precip/meta.data$Days.after.planting
+
+rain <- lm(rain_per_day ~ Location*as.factor(Year) + cnt, data = meta.data)
+anova(rain)
+
+lsmeans <- emmeans(rain, ~Location|as.factor(Year)) # estimate lsmeans of variety within siteXyear
+Results_lsmeansEC <- multcomp::cld(lsmeans, alpha = 0.05, reversed = TRUE, details = TRUE, Letters = letters) # contrast with Tukey ajustment
+Results_lsmeansEC
+
+ggplot(meta.data, aes(x = as.factor(Year), y = rain_per_day, fill = Location)) + 
+  stat_summary(fun=mean,geom="bar", position = "dodge") +
+  stat_summary(fun.data = mean_se, geom = "errorbar", width = 0.5, position = "dodge") 
   
-  
-  
+ggplot(meta.data, aes(x = annual_30_year_normal_in, y = richness, color = Location)) + 
+  geom_point() +
+  geom_smooth(method = "glm", se = F,
+              method.args = list(family = "poisson"), color = "black") +
+  stat_cor()
+
+
+
+
