@@ -21,7 +21,7 @@ The two R scripts that generate figures and analysis for this paper are the [Pat
 
 For the biogeography modeling portion, a phyloseq object was used, and this can be generated from scratch using the species count (OTU) table, Taxonomy Table, and metadata file, or can be directly loaded into R using the oomycete_phyloseq_final.RDS file. The 2023-11-18_IsolateCollection.csv file is all of the isolates in long format and was used to create the species count table. 
 
-Secondly we have used amplicon sequencing on the soils collected in the above manuscript to get a better idea of the oomycetes present in the soils since this type of sequencing is more powerful to capture the diversity of the oomycetes in a soil. Those data can be accessed through the AmpliconSeq directory in this repository. 
+Secondly we have used amplicon sequencing on the soils collected in the above manuscript to get a better idea of the oomycetes present in the soils since this type of sequencing is more powerful to capture the diversity of the oomycetes in a soil. Those data can be accessed through the AmpliconSeq directory in this repository. This directory includes all of the files nessesary to reproduce the figures shown in this part of the manuscript as well as all the HPC scripts necessary to reproduce the data from the raw reads. 
 
 
 
