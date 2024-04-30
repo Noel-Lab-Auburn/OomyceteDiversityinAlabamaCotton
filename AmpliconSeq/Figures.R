@@ -34,7 +34,34 @@ tax.data <- data.frame(oomy_raw_filt@tax_table)
 otu <- oomy_raw_filt@otu_table %>%
   as("matrix")
 
-#### Fig 1a - Abundance occupancy #####
+# summary stats
+sum(sample_sums(oomy_raw_filt))
+#335,385 sequences
+#116 OTUs within phylum 
+
+# distribution of species counts
+count_otus <- tax.data %>%
+  group_by(Species) %>%
+  summarise(cnt = n()) %>%
+  mutate(freq = cnt / sum(cnt)) %>% 
+  arrange(desc(freq)) %>%
+  print(n = 38)
+# 6 OTUs were irregulare (5.2%)
+# 3 OTUs were ultimum (2.6%) 
+# 2 OTUs were heterothallicum (1.7%)
+# 1 OTU was nicotianae (0.9%)
+# 1 OTU was rostratifigens (0.9%)
+# 1 OTU was spinosum (0.9%)
+
+# 3 OTUs were genus Lagenidium (2.6%)
+
+#no Py. deliense OTUs
+#no G. sylvaticum OTUs
+#no G. acanthophoron OTUs
+#no Phyto. cucubitacearum OTUs
+#no Phyto. helicoides OTUs
+
+#calculating abundance occupancy
 otu_PA <- 1*((otu>0)==1)                                               # presence-absence data
 otu_occ <- rowSums(otu_PA)/ncol(otu_PA)                                # occupancy calculation
 otu_rel <- apply(decostand(otu, method="total", MARGIN=2),1, mean)     # mean relative abundance
@@ -44,6 +71,36 @@ occ_abund_tax <- left_join(occ_abun, tax.data, by = "OTU")
 
 occ_abund_tax$Other <- ifelse(occ_abund_tax$otu_occ < 0.31 & occ_abund_tax$otu_rel < 0.05, "Other", occ_abund_tax$Genus)
 
+# abundance occupancy by pathogen
+# G. irregulare
+irregulare <- occ_abund_tax %>%
+  subset(Species == "irregulare")
+
+# G. ultimum
+ultimum <- occ_abund_tax %>%
+  subset(Species == "ultimum")
+
+# G. heterothallicum
+heterothallicum <- occ_abund_tax %>%
+  subset(Species == "heterothallicum")
+
+# P. nicotianae
+nicotianae <- occ_abund_tax %>%
+  subset(Species == "nicotianae")
+
+# G. rostratifingens
+rostratifingens <- occ_abund_tax %>%
+  subset(Species == "rostratifingens")
+
+# G. spinosum
+spinosum <- occ_abund_tax %>%
+  subset(Species == "spinosum")
+
+# genus Lagenidium
+lagenidium <- occ_abund_tax %>%
+  subset(Genus == "Lagenidium")
+
+#### Fig 1a - Abundance occupancy #####
 fig1a <- ggplot(occ_abund_tax, aes(y = otu_occ, x = otu_rel, color = Other)) +
   geom_point() + 
   theme_classic2() + 
