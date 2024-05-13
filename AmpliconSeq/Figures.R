@@ -52,6 +52,21 @@ oom.rare <- ggplot(oom.rare.curve.extract2, aes(x = Sample.y.y, y = Species, gro
 
 ## Things really start leveling out around 10,000 reads per sample.
 
+####### ALPHA DIVERSITY #########
+oomy_raw_filt@sam_data$richness <- estimate_richness(oomy_raw_filt, measures=c("Observed"))$Observed
+
+mean(oomy_raw_filt@sam_data$richness)
+
+
+oomy_raw_filt %>%
+  subset_taxa(Genus %in% c("Pythium",
+                           "Globisporangium", 
+                           "Phytophthora", 
+                           "Phytopythium")) %>% 
+  estimate_richness(measures=c("Observed")) %>%
+  summary()
+
+
 # separating the otu table, metadata, and the tax data for ease 
 meta.data <- data.frame(oomy_raw_filt@sam_data)
 tax.data <- data.frame(oomy_raw_filt@tax_table)
@@ -60,7 +75,10 @@ otu <- oomy_raw_filt@otu_table %>%
 
 # summary stats
 sum(sample_sums(oomy_raw_filt))
+mean(sample_sums(oomy_raw_filt))
+median(sample_sums(oomy_raw_filt))
 #335,385 sequences
+#16,000 sequences per sample
 #116 OTUs within phylum 
 
 # distribution of species counts
