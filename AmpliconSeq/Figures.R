@@ -28,6 +28,30 @@ oomy_raw_filt <- oomy_raw %>%
   subset_samples(!Sample %in% c("KAL385", "KAL389")) %>%
   subset_taxa(Phylum == "Oomycota")
 
+### Rarefaction ### 
+
+sam.data <- data.frame(oomy_raw_filt@sam_data)
+oOTU.table <- otu_table(oomy_raw_filt) %>%
+  as.data.frame() %>%
+  as.matrix()
+
+raremax <- min(rowSums(t(oOTU.table)))
+rare.fun <- rarecurve(t(oOTU.table), step = 500, sample = raremax, tidy = T)
+
+oom.rare.curve.extract2 <- left_join(sam.data, rare.fun, by = c("Sample" = "Site"))
+
+oom.rare <- ggplot(oom.rare.curve.extract2, aes(x = Sample.y.y, y = Species, group = Sample)) + 
+  #geom_point() +
+  geom_line() + 
+  xlab("Reads") + 
+  ylab("Number of OTUs") +
+  theme_classic() + 
+  #geom_vline(xintercept = median(sample_sums(oomy_raw_filt)), linetype = "dashed") +
+  #geom_vline(xintercept = min(sample_sums(oomy_raw_filt)), linetype = "dashed", color = "red") +
+  scale_color_manual(values = cbbPalette)
+
+## Things really start leveling out around 10,000 reads per sample.
+
 # separating the otu table, metadata, and the tax data for ease 
 meta.data <- data.frame(oomy_raw_filt@sam_data)
 tax.data <- data.frame(oomy_raw_filt@tax_table)
